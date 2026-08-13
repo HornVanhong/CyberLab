@@ -104,11 +104,6 @@ export function AuthModal({ isOpen, onClose, initialTab = "login" }: AuthModalPr
     }
   };
 
-  const fillDemoCreds = () => {
-    setLoginEmailVal("student@cyberlab.local");
-    setLoginPassVal("student123");
-  };
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto animate-fadeIn">
       {/* Backdrop */}
@@ -269,18 +264,6 @@ export function AuthModal({ isOpen, onClose, initialTab = "login" }: AuthModalPr
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
-            </div>
-
-            {/* Quick Demo Fill Helper */}
-            <div className="flex items-center justify-between text-xs pt-1">
-              <button
-                type="button"
-                onClick={fillDemoCreds}
-                className="text-[11px] font-mono text-emerald-400 hover:underline flex items-center gap-1 cursor-pointer"
-              >
-                <Sparkles className="w-3 h-3" />
-                <span>Fill Demo Student Credentials</span>
-              </button>
             </div>
 
             <button

@@ -79,7 +79,7 @@ export async function signInWithGoogle() {
   }
 }
 
-// 2. Email & Password Sign-In (With Demo Auto-Creation Fallback)
+// 2. Email & Password Sign-In
 export async function loginWithEmail(email: string, pass: string) {
   const cleanEmail = email.trim().toLowerCase();
   try {
@@ -87,17 +87,6 @@ export async function loginWithEmail(email: string, pass: string) {
     return { user: result.user, error: null };
   } catch (error: any) {
     console.error("Firebase Email Auth Error:", error);
-
-    // If demo account student@cyberlab.local or admin@cyberlab.local, attempt auto-registration if first time
-    if (cleanEmail === "student@cyberlab.local" || cleanEmail === "admin@cyberlab.local") {
-      try {
-        const regResult = await createUserWithEmailAndPassword(auth, cleanEmail, pass);
-        return { user: regResult.user, error: null };
-      } catch (regError) {
-        // Continue to formatted error
-      }
-    }
-
     return { user: null, error: formatFirebaseError(error) };
   }
 }
@@ -110,17 +99,6 @@ export async function registerWithEmail(email: string, pass: string) {
     return { user: result.user, error: null };
   } catch (error: any) {
     console.error("Firebase Registration Error:", error);
-
-    // If already in use, attempt logging in automatically
-    if (error?.code === "auth/email-already-in-use") {
-      try {
-        const loginResult = await signInWithEmailAndPassword(auth, cleanEmail, pass);
-        return { user: loginResult.user, error: null };
-      } catch {
-        // Fall back to friendly error message
-      }
-    }
-
     return { user: null, error: formatFirebaseError(error) };
   }
 }

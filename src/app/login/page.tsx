@@ -15,7 +15,6 @@ import {
   AlertCircle,
   Globe,
   Terminal,
-  Key,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
@@ -118,12 +117,6 @@ export default function LoginPage() {
                 <span>Practical Kali Linux VM Examination</span>
               </div>
             </div>
-          </div>
-
-          <div className="p-4 rounded-2xl bg-slate-950/80 border border-slate-800 text-[11px] font-mono text-slate-400 space-y-1">
-            <span className="text-emerald-400 font-bold block">💡 Fast Demo Credentials:</span>
-            <p>Email: <code className="text-slate-200">student@cyberlab.local</code></p>
-            <p>Password: <code className="text-slate-200">student123</code></p>
           </div>
         </div>
 
