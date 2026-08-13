@@ -54,7 +54,7 @@ function formatFirebaseError(error: any): string {
     msg.includes("user-not-found") ||
     msg.includes("wrong-password")
   ) {
-    return "Invalid email address or password. If you created your account with Google, please click 'Continue with Google'.";
+    return "No account exists for this email, or incorrect password. Please click 'Register Here' below to create a free account.";
   }
 
   if (code === "auth/weak-password" || msg.includes("weak-password")) {
@@ -73,7 +73,7 @@ function formatFirebaseError(error: any): string {
     return "Network error. Please check your internet connection.";
   }
 
-  return "Sign in failed. Please check your credentials or sign in with Google.";
+  return "No account found with this email address. Please click 'Register Here' below to create a free account.";
 }
 
 // 1. Google 1-Click Sign-In
@@ -108,6 +108,8 @@ export async function loginWithEmail(email: string, pass: string) {
     return { user: result.user, error: null };
   } catch (error: any) {
     console.error("Firebase Email Auth Error:", error);
+    const code = error?.code || "";
+    const msg = String(error?.message || "");
 
     try {
       const methods = await fetchSignInMethodsForEmail(auth, cleanEmail);
@@ -120,17 +122,21 @@ export async function loginWithEmail(email: string, pass: string) {
       if (methods.length === 0) {
         return {
           user: null,
-          error: "No account found with this email address. Click 'Register Here' below to create a free account.",
+          error: "No account exists for this email address yet. Click 'Register Here' below to create a free account.",
         };
       }
     } catch {
       // Ignore provider check if blocked
     }
 
-    return {
-      user: null,
-      error: "Incorrect password or credentials. If you registered via Google, please click 'Continue with Google'.",
-    };
+    if (code === "auth/invalid-credential" || code === "auth/user-not-found" || msg.includes("invalid-credential")) {
+      return {
+        user: null,
+        error: "No account exists for this email yet, or incorrect password. Click 'Register Here' below to create a free account.",
+      };
+    }
+
+    return { user: null, error: formatFirebaseError(error) };
   }
 }
 
