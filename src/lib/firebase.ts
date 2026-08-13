@@ -38,11 +38,11 @@ function formatFirebaseError(error: any): string {
     code === "auth/account-exists-with-different-credential" ||
     msg.includes("account-exists-with-different-credential")
   ) {
-    return "This email is registered with Google 1-Click. Please click 'Continue with Google' to sign in.";
+    return "An account with this email already exists under a different sign-in method. Please sign in with your email and password or Google.";
   }
 
   if (code === "auth/email-already-in-use" || msg.includes("email-already-in-use")) {
-    return "An account with this email already exists. Please sign in with your email or use Google 1-Click.";
+    return "An account with this email already exists. Please sign in instead.";
   }
 
   if (
@@ -82,6 +82,16 @@ export async function signInWithGoogle() {
     return { user: result.user, error: null };
   } catch (error: any) {
     console.error("Firebase Google Auth Error:", error);
+    const code = error?.code || "";
+    const msg = String(error?.message || "");
+
+    if (code === "auth/account-exists-with-different-credential" || msg.includes("account-exists-with-different-credential")) {
+      return {
+        user: null,
+        error: "An account with this email was created using Email & Password. Please sign in using your Email and Password above.",
+      };
+    }
+
     return { user: null, error: formatFirebaseError(error) };
   }
 }
