@@ -29,6 +29,17 @@ export default function LoginPage() {
   const [errorMsg, setErrorMsg] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
+  const getRedirectUrl = () => {
+    if (typeof window !== "undefined") {
+      const saved = sessionStorage.getItem("redirectAfterLogin");
+      if (saved && saved !== "/login" && saved !== "/register") {
+        sessionStorage.removeItem("redirectAfterLogin");
+        return saved;
+      }
+    }
+    return "/labs";
+  };
+
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg("");
@@ -40,7 +51,7 @@ export default function LoginPage() {
     if (error) {
       setErrorMsg(error);
     } else if (user) {
-      router.push("/");
+      router.push(getRedirectUrl());
     }
   };
 
@@ -53,7 +64,7 @@ export default function LoginPage() {
     if (error) {
       setErrorMsg(error);
     } else if (user) {
-      router.push("/");
+      router.push(getRedirectUrl());
     }
   };
 
