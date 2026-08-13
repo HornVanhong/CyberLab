@@ -1,424 +1,314 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import {
-  ShieldAlert,
+  Shield,
+  Terminal,
   Globe,
-  Code,
-  Search,
-  Flag,
-  Trophy,
-  Zap,
+  Award,
+  Wrench,
+  Cpu,
   Layers,
+  Sparkles,
   ArrowRight,
+  Play,
   CheckCircle2,
   Lock,
-  Play,
-  Terminal,
-  Activity,
-  Sparkles,
+  Search,
+  Zap,
+  BookOpen,
+  HelpCircle,
+  BarChart3,
   Server,
-  Compass,
 } from "lucide-react";
 import { useCyberLab } from "@/context/CyberLabContext";
-import { ProgressBar } from "@/components/ui/ProgressBar";
-import { DifficultyBadge, CategoryBadge, StatusBadge } from "@/components/ui/Badge";
 
-export default function DashboardPage() {
-  const {
-    stats,
-    labs,
-    currentLab,
-    setCurrentLab,
-    challenges,
-    progress,
-    isChallengeCompleted,
-    isChallengeUnlocked,
-  } = useCyberLab();
+export default function LandingHomePage() {
+  const { stats } = useCyberLab();
+  const [activeTabCommand, setActiveTabCommand] = useState<string>("nmap");
 
-  // Find next unfinished challenge to continue
-  const nextChallenge =
-    challenges.find((c) => !isChallengeCompleted(c.id) && isChallengeUnlocked(c.id)) ||
-    challenges[0];
-
-  const completedCount = stats.completedChallenges;
-  const totalCount = stats.totalChallenges;
+  const terminalDemos: Record<string, { cmd: string; output: string }> = {
+    nmap: {
+      cmd: "nmap -sC -sV 192.168.56.102",
+      output:
+        "Starting Nmap 7.94 ( https://nmap.org )\nNmap scan report for 192.168.56.102\nPORT     STATE SERVICE VERSION\n21/tcp   open  ftp     vsFTPd 2.3.4 (Backdoor VULNERABLE)\n22/tcp   open  ssh     OpenSSH 4.7p1\n80/tcp   open  http    Apache httpd 2.2.8\n445/tcp  open  netbios Samba smbd 3.0.20-debian\nNmap done: 1 IP address (1 host up) scanned in 2.14 seconds",
+    },
+    shodan: {
+      cmd: "shodan search 'port:21 anonymous'",
+      output:
+        "Query: port:21 anonymous\nTotal results: 14,890\n\n198.51.100.42:21 - vsFTPd 2.3.4 (Anonymous Login Allowed)\n203.0.113.15:21   - ProFTPD 1.3.5\n[+] Results retrieved via Shodan OSINT Intelligence Engine",
+    },
+    crtsh: {
+      cmd: "curl -s 'https://crt.sh/?q=%.target.com&output=json'",
+      output:
+        "[\n  { \"name_value\": \"target.com\" },\n  { \"name_value\": \"dev-staging.target.com\" },\n  { \"name_value\": \"mail.target.com\" }\n]\n[+] Passive SSL Certificate Transparency logs extracted",
+    },
+    hashcat: {
+      cmd: "hashcat -m 0 5f4dcc3b5aa765d61d8327deb882cf99 rockyou.txt",
+      output:
+        "5f4dcc3b5aa765d61d8327deb882cf99:password\nSession..........: hashcat\nStatus...........: Cracked (+100 XP)",
+    },
+  };
 
   return (
-    <div className="space-y-8 animate-fadeIn">
-      {/* Top Hero Banner */}
-      <div className="relative overflow-hidden rounded-2xl border border-slate-800/80 bg-gradient-to-r from-slate-900 via-slate-900/90 to-slate-950 p-6 sm:p-8 shadow-2xl">
-        <div className="absolute top-0 right-0 -mt-8 -mr-8 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 right-1/3 -mb-10 w-48 h-48 bg-cyan-500/10 rounded-full blur-2xl pointer-events-none" />
+    <div className="space-y-16 animate-fadeIn pb-16">
+      {/* 🚀 HERO SECTION */}
+      <section className="relative overflow-hidden rounded-3xl border border-slate-800 bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 p-6 sm:p-10 lg:p-12 shadow-2xl">
+        <div className="absolute top-0 right-0 -mt-12 -mr-12 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 right-1/3 -mb-12 w-80 h-80 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
 
-        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-          <div className="space-y-3 max-w-2xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-mono">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              CYBERSECURITY PRACTICE ENVIRONMENT
+        <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
+          {/* Left Column: Hero Copy & CTA (7 cols) */}
+          <div className="lg:col-span-7 space-y-6">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-mono">
+              <Sparkles className="w-4 h-4" />
+              <span>HANDS-ON CYBERSECURITY & OSINT PRACTICE PLATFORM</span>
             </div>
 
-            <h1 className="text-2xl sm:text-4xl font-extrabold text-white tracking-tight">
-              Welcome to <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400">CyberLab</span>
+            <h1 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight leading-tight">
+              Master Ethical Hacking & <br />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400">
+                OSINT Intelligence
+              </span>
             </h1>
 
-            <p className="text-sm text-slate-400 leading-relaxed">
-              Sharpen your hands-on cybersecurity skills across <strong>Metasploitable 2</strong>, <strong>OWASP Juice Shop</strong>, <strong>DVWA</strong>, and <strong>OSINT & Threat Intelligence</strong> from your Kali Linux environment.
+            <p className="text-sm sm:text-base text-slate-300 leading-relaxed font-sans max-w-2xl">
+              Learn 25+ CLI security tools, query live OSINT search portals (<strong>Shodan</strong>, <strong>Censys</strong>, <strong>Crt.sh</strong>), solve Metasploitable CTF lab challenges, and pass the practical Kali Linux certification exam.
             </p>
-          </div>
 
-          {/* Quick Continue Practice CTA */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-            {nextChallenge && (
+            {/* CTA Buttons */}
+            <div className="flex flex-wrap items-center gap-4 pt-2">
               <Link
-                href={`/challenges/${nextChallenge.id}`}
-                className="flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-xl font-semibold text-sm bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 hover:from-emerald-400 hover:to-teal-400 transition-all shadow-[0_0_20px_rgba(16,185,129,0.3)] group cursor-pointer"
+                href="/labs"
+                className="px-6 py-3.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-mono text-xs font-extrabold transition-all flex items-center gap-2 shadow-xl shadow-emerald-500/20 cursor-pointer"
               >
-                <Play className="w-4 h-4 fill-current transition-transform group-hover:scale-110" />
-                <span>Continue Practice</span>
-                <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                <Play className="w-4 h-4 fill-current" />
+                <span>Start Practice Labs</span>
               </Link>
-            )}
-
-            <Link
-              href="/labs"
-              className="flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl font-medium text-sm text-slate-300 bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 hover:border-slate-600 transition-all"
-            >
-              <Layers className="w-4 h-4 text-cyan-400" />
-              <span>Explore All Labs</span>
-            </Link>
-          </div>
-        </div>
-      </div>
-
-      {/* Main KPI Stats Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Total Labs */}
-        <div className="p-5 rounded-xl border border-slate-800/80 bg-slate-900/60 backdrop-blur-sm space-y-2 hover:border-slate-700 transition-colors">
-          <div className="flex items-center justify-between text-slate-400">
-            <span className="text-xs font-mono uppercase tracking-wider">Total Labs</span>
-            <div className="p-2 rounded-lg bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
-              <Layers className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="text-2xl font-bold text-white font-mono">{stats.totalLabs}</div>
-          <p className="text-[11px] text-emerald-400 font-mono">3 Active Modules</p>
-        </div>
-
-        {/* Total Challenges */}
-        <div className="p-5 rounded-xl border border-slate-800/80 bg-slate-900/60 backdrop-blur-sm space-y-2 hover:border-slate-700 transition-colors">
-          <div className="flex items-center justify-between text-slate-400">
-            <span className="text-xs font-mono uppercase tracking-wider">Challenges</span>
-            <div className="p-2 rounded-lg bg-purple-500/10 text-purple-400 border border-purple-500/20">
-              <Flag className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="text-2xl font-bold text-white font-mono">{stats.totalChallenges}</div>
-          <p className="text-[11px] text-slate-400">30 CTF challenges</p>
-        </div>
-
-        {/* Completed Challenges */}
-        <div className="p-5 rounded-xl border border-slate-800/80 bg-slate-900/60 backdrop-blur-sm space-y-2 hover:border-slate-700 transition-colors">
-          <div className="flex items-center justify-between text-slate-400">
-            <span className="text-xs font-mono uppercase tracking-wider">Completed</span>
-            <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-              <CheckCircle2 className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="text-2xl font-bold text-emerald-400 font-mono">
-            {completedCount} <span className="text-xs text-slate-400 font-sans">/ {totalCount}</span>
-          </div>
-          <div className="pt-1">
-            <ProgressBar value={stats.progressPercentage} showValue={false} size="sm" />
-          </div>
-        </div>
-
-        {/* Total Score */}
-        <div className="p-5 rounded-xl border border-slate-800/80 bg-slate-900/60 backdrop-blur-sm space-y-2 hover:border-slate-700 transition-colors">
-          <div className="flex items-center justify-between text-slate-400">
-            <span className="text-xs font-mono uppercase tracking-wider">Total Score</span>
-            <div className="p-2 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/20">
-              <Trophy className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="text-2xl font-bold text-amber-400 font-mono flex items-center gap-1.5">
-            <span>{stats.totalScore}</span>
-            <span className="text-xs text-slate-400 font-normal">XP</span>
-          </div>
-          <p className="text-[11px] text-slate-400">Max Possible: {stats.maxScore} XP</p>
-        </div>
-      </div>
-
-      {/* 3 Active Labs Quick Selector Strip */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {labs.map((lab) => {
-          const labCh = challenges.filter((c) => c.labId === lab.id);
-          const solvedInLab = labCh.filter((c) => isChallengeCompleted(c.id)).length;
-          const labPct = labCh.length > 0 ? Math.round((solvedInLab / labCh.length) * 100) : 0;
-          const isSelected = currentLab?.id === lab.id;
-
-          return (
-            <div
-              key={lab.id}
-              onClick={() => setCurrentLab(lab.id)}
-              className={`p-4 rounded-xl border transition-all cursor-pointer ${
-                isSelected
-                  ? "bg-slate-900/90 border-emerald-500/50 shadow-[0_0_20px_rgba(16,185,129,0.15)]"
-                  : "bg-slate-900/50 border-slate-800 hover:border-slate-700"
-              }`}
-            >
-              <div className="flex items-start justify-between">
-                <div className="flex items-center gap-2.5">
-                  <div className="p-2 rounded-lg bg-slate-950 border border-slate-800">
-                    {lab.iconName === "Globe" ? (
-                      <Globe className="w-4 h-4 text-cyan-400" />
-                    ) : lab.iconName === "Code" ? (
-                      <Code className="w-4 h-4 text-purple-400" />
-                    ) : lab.iconName === "Search" ? (
-                      <Search className="w-4 h-4 text-amber-400" />
-                    ) : (
-                      <ShieldAlert className="w-4 h-4 text-emerald-400" />
-                    )}
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-bold text-white">{lab.name}</h3>
-                    <p className="text-[11px] text-slate-400 font-mono">{lab.category}</p>
-                  </div>
-                </div>
-                <StatusBadge status={lab.status} />
-              </div>
-
-              <div className="mt-3 space-y-1.5">
-                <ProgressBar value={labPct} size="sm" showValue={false} variant={labPct === 100 ? "emerald" : "gradient"} />
-                <div className="flex items-center justify-between text-[11px] font-mono text-slate-400">
-                  <span>{solvedInLab}/{labCh.length} Solved</span>
-                  <Link
-                    href={`/labs/${lab.id}`}
-                    className="text-emerald-400 hover:underline flex items-center gap-0.5"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <span>Open</span>
-                    <ArrowRight className="w-3 h-3" />
-                  </Link>
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Two Column Layout: Current Lab Focus + Category Breakdown */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left 2 Cols: Active Practice Lab & Next Up */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Active Lab Card */}
-          <div className="rounded-xl border border-slate-800 bg-slate-900/80 p-6 space-y-5 shadow-xl">
-            <div className="flex items-start justify-between">
-              <div className="flex items-center gap-3.5">
-                <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.2)]">
-                  {currentLab?.iconName === "Globe" ? (
-                    <Globe className="w-6 h-6 text-cyan-400" />
-                  ) : currentLab?.iconName === "Code" ? (
-                    <Code className="w-6 h-6 text-purple-400" />
-                  ) : currentLab?.iconName === "Search" ? (
-                    <Search className="w-6 h-6 text-amber-400" />
-                  ) : (
-                    <ShieldAlert className="w-6 h-6 text-emerald-400" />
-                  )}
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-lg font-bold text-white">{currentLab?.name || "Metasploitable 2"}</h2>
-                    <StatusBadge status="In Progress" />
-                  </div>
-                  <p className="text-xs text-slate-400 mt-0.5">
-                    Category: {currentLab?.category} • Difficulty: {currentLab?.difficulty}
-                  </p>
-                </div>
-              </div>
 
               <Link
-                href={`/labs/${currentLab?.id || "metasploitable-2"}`}
-                className="hidden sm:inline-flex items-center gap-1.5 text-xs font-mono text-emerald-400 hover:text-emerald-300 font-semibold"
+                href="/osint-resources"
+                className="px-6 py-3.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-cyan-300 border border-slate-800 hover:border-cyan-500/40 font-mono text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shadow-lg"
               >
-                <span>View Lab Details</span>
-                <ArrowRight className="w-3.5 h-3.5" />
+                <Globe className="w-4 h-4 text-cyan-400" />
+                <span>Explore OSINT Portals</span>
+              </Link>
+
+              <Link
+                href="/exam"
+                className="px-6 py-3.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 font-mono text-xs font-bold transition-all flex items-center gap-2 cursor-pointer"
+              >
+                <Award className="w-4 h-4 text-amber-400" />
+                <span>Take Exam</span>
               </Link>
             </div>
 
-            <p className="text-xs text-slate-300 leading-relaxed">
-              {currentLab?.description}
-            </p>
+            {/* Quick Metrics */}
+            <div className="grid grid-cols-3 gap-4 pt-4 border-t border-slate-800/80 max-w-lg">
+              <div>
+                <span className="text-xl font-bold text-white font-mono">{stats.totalChallenges}</span>
+                <p className="text-[11px] text-slate-400 font-mono">CTF Challenges</p>
+              </div>
+              <div>
+                <span className="text-xl font-bold text-emerald-400 font-mono">25+</span>
+                <p className="text-[11px] text-slate-400 font-mono">Security Tools</p>
+              </div>
+              <div>
+                <span className="text-xl font-bold text-cyan-400 font-mono">100%</span>
+                <p className="text-[11px] text-slate-400 font-mono">Free & Open Source</p>
+              </div>
+            </div>
+          </div>
 
-            {/* Next challenge recommendation */}
-            {nextChallenge && (
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-xl bg-slate-950/60 border border-emerald-500/20">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[11px] font-mono text-emerald-400 font-bold uppercase">
-                      Current Challenge
-                    </span>
-                    <DifficultyBadge difficulty={nextChallenge.difficulty} />
-                  </div>
-                  <h3 className="text-sm font-bold text-white">
-                    #{nextChallenge.order.toString().padStart(2, "0")}. {nextChallenge.title}
-                  </h3>
-                  <p className="text-xs text-slate-400 line-clamp-1">{nextChallenge.objective}</p>
-                </div>
-
-                <Link
-                  href={`/challenges/${nextChallenge.id}`}
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs font-mono transition-all shadow-[0_0_12px_rgba(16,185,129,0.25)] whitespace-nowrap"
+          {/* Right Column: Interactive Terminal Preview Showcase (5 cols) */}
+          <div className="lg:col-span-5 space-y-3">
+            {/* Terminal Selector Buttons */}
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+              {["nmap", "shodan", "crtsh", "hashcat"].map((key) => (
+                <button
+                  key={key}
+                  onClick={() => setActiveTabCommand(key)}
+                  className={`px-3 py-1 rounded-lg text-xs font-mono transition-all cursor-pointer ${
+                    activeTabCommand === key
+                      ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold"
+                      : "bg-slate-900 text-slate-400 border border-slate-800"
+                  }`}
                 >
-                  <Play className="w-3.5 h-3.5 fill-current" />
-                  <span>Start Challenge</span>
-                </Link>
-              </div>
-            )}
-          </div>
-
-          {/* Challenge Quick List Preview */}
-          <div className="rounded-xl border border-slate-800 bg-slate-900/80 p-6 space-y-4 shadow-xl">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Flag className="w-4 h-4 text-emerald-400" />
-                <h3 className="text-sm font-bold text-white font-mono uppercase tracking-wider">
-                  Challenge Roadmap ({currentLab?.name})
-                </h3>
-              </div>
-              <Link
-                href="/challenges"
-                className="text-xs text-slate-400 hover:text-emerald-400 transition-colors font-mono"
-              >
-                View all ({challenges.length}) →
-              </Link>
-            </div>
-
-            <div className="space-y-2">
-              {challenges
-                .filter((c) => c.labId === (currentLab?.id || "metasploitable-2"))
-                .slice(0, 5)
-                .map((ch) => {
-                  const completed = isChallengeCompleted(ch.id);
-                  const unlocked = isChallengeUnlocked(ch.id);
-
-                  return (
-                    <Link
-                      key={ch.id}
-                      href={unlocked ? `/challenges/${ch.id}` : "#"}
-                      className={`flex items-center justify-between p-3 rounded-lg border transition-all ${
-                        completed
-                          ? "bg-emerald-950/20 border-emerald-500/30 text-slate-200"
-                          : unlocked
-                          ? "bg-slate-950/60 border-slate-800 hover:border-slate-700 text-slate-200"
-                          : "bg-slate-950/20 border-slate-900 text-slate-400 opacity-60 cursor-not-allowed"
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        {completed ? (
-                          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                        ) : unlocked ? (
-                          <div className="w-4 h-4 rounded-full border-2 border-emerald-400 flex items-center justify-center shrink-0">
-                            <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full" />
-                          </div>
-                        ) : (
-                          <Lock className="w-4 h-4 text-slate-400 shrink-0" />
-                        )}
-
-                        <div>
-                          <div className="text-xs font-semibold text-slate-200 flex items-center gap-2">
-                            <span className="font-mono text-slate-400">
-                              #{ch.order.toString().padStart(2, "0")}
-                            </span>
-                            <span>{ch.title}</span>
-                          </div>
-                          <div className="flex items-center gap-2 mt-0.5">
-                            <span className="text-[11px] text-slate-400">{ch.category}</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-mono text-emerald-400 font-semibold">
-                          +{ch.points} XP
-                        </span>
-                        <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
-                      </div>
-                    </Link>
-                  );
-                })}
-            </div>
-          </div>
-        </div>
-
-        {/* Right Column: Category Breakdown & Quick Tips */}
-        <div className="space-y-6">
-          {/* Category Progress Card */}
-          <div className="rounded-xl border border-slate-800 bg-slate-900/80 p-6 space-y-4 shadow-xl">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-              <h3 className="text-sm font-bold text-white font-mono uppercase tracking-wider flex items-center gap-2">
-                <Activity className="w-4 h-4 text-cyan-400" />
-                Category Progress
-              </h3>
-              <span className="text-xs font-mono text-emerald-400 font-bold">
-                {stats.progressPercentage}%
-              </span>
-            </div>
-
-            <div className="space-y-4">
-              {stats.categoryStats.map((cat) => (
-                <div key={cat.category} className="space-y-1.5">
-                  <div className="flex items-center justify-between text-xs font-mono">
-                    <span className="text-slate-300">{cat.category}</span>
-                    <span className="text-slate-400">
-                      {cat.completed}/{cat.total} ({cat.percentage}%)
-                    </span>
-                  </div>
-                  <ProgressBar
-                    value={cat.percentage}
-                    showValue={false}
-                    size="sm"
-                    variant={
-                      cat.percentage === 100
-                        ? "emerald"
-                        : cat.percentage > 0
-                        ? "cyan"
-                        : "purple"
-                    }
-                  />
-                </div>
+                  ${key}
+                </button>
               ))}
             </div>
-          </div>
 
-          {/* Quick Practice Workflow Guide */}
-          <div className="rounded-xl border border-slate-800 bg-slate-900/80 p-5 space-y-3">
-            <h4 className="text-xs font-bold text-slate-200 font-mono uppercase tracking-wider flex items-center gap-2">
-              <Compass className="w-3.5 h-3.5 text-amber-400" />
-              Practice Workflow
-            </h4>
-            <ol className="space-y-2.5 text-xs text-slate-400 font-sans">
-              <li className="flex items-start gap-2">
-                <span className="font-mono text-emerald-400 font-bold">1.</span>
-                <span>Select active Lab (Metasploitable, Juice Shop, DVWA).</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="font-mono text-emerald-400 font-bold">2.</span>
-                <span>Investigate manually with Kali Linux / Burp Suite.</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="font-mono text-emerald-400 font-bold">3.</span>
-                <span>Discover the matching flag <code className="text-emerald-300 font-mono">LAB{`{...}`}</code>.</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="font-mono text-emerald-400 font-bold">4.</span>
-                <span>Submit flag to earn XP and unlock the next exercise.</span>
-              </li>
-            </ol>
+            {/* Interactive Terminal Window */}
+            <div className="rounded-2xl border border-slate-800 bg-slate-950 p-5 space-y-3 font-mono text-xs shadow-2xl">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-800/80 text-[11px] text-slate-400">
+                <div className="flex items-center gap-2">
+                  <div className="w-2.5 h-2.5 rounded-full bg-rose-500/80" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-amber-500/80" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-emerald-500/80" />
+                  <span className="ml-2 font-bold text-slate-300">cyberlab@kali:~#</span>
+                </div>
+                <span className="text-emerald-400 text-[10px]">LIVE PREVIEW</span>
+              </div>
+
+              <div className="text-emerald-300 font-bold">
+                $ {terminalDemos[activeTabCommand].cmd}
+              </div>
+
+              <pre className="text-slate-300 text-[11px] whitespace-pre-wrap leading-relaxed overflow-x-auto max-h-52 font-mono">
+                {terminalDemos[activeTabCommand].output}
+              </pre>
+            </div>
           </div>
         </div>
-      </div>
+      </section>
+
+      {/* 🌟 6 CORE PLATFORM FEATURES GRID */}
+      <section className="space-y-6">
+        <div className="text-center space-y-2 max-w-2xl mx-auto">
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-white">
+            Everything You Need for <span className="text-emerald-400">Cyber Training</span>
+          </h2>
+          <p className="text-xs sm:text-sm text-slate-400 font-sans">
+            Explore 6 comprehensive security modules designed for students, ethical hackers, and security analysts.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {/* Card 1: Learn Tools Academy */}
+          <Link
+            href="/tools"
+            className="rounded-2xl border border-slate-800 bg-slate-900/80 p-6 space-y-4 hover:border-emerald-500/50 transition-all shadow-xl group cursor-pointer flex flex-col justify-between"
+          >
+            <div className="space-y-3">
+              <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 w-fit group-hover:scale-110 transition-transform">
+                <Wrench className="w-6 h-6" />
+              </div>
+              <h3 className="text-lg font-bold text-white group-hover:text-emerald-300 transition-colors">
+                Learn Tools Academy
+              </h3>
+              <p className="text-xs text-slate-400 leading-relaxed font-sans">
+                Interactive 5-part lessons for 25+ tools (Nmap, Gobuster, SQLmap, Hydra, Wireshark, Metasploit, Ghidra, CyberChef). Includes flag builders and terminal simulators.
+              </p>
+            </div>
+            <div className="flex items-center gap-1.5 text-xs font-mono font-bold text-emerald-400 pt-2">
+              <span>Open Tool Academy</span>
+              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+            </div>
+          </Link>
+
+          {/* Card 2: OSINT Web Links */}
+          <Link
+            href="/osint-resources"
+            className="rounded-2xl border border-slate-800 bg-slate-900/80 p-6 space-y-4 hover:border-cyan-500/50 transition-all shadow-xl group cursor-pointer flex flex-col justify-between"
+          >
+            <div className="space-y-3">
+              <div className="p-3 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 w-fit group-hover:scale-110 transition-transform">
+                <Globe className="w-6 h-6" />
+              </div>
+              <h3 className="text-lg font-bold text-white group-hover:text-cyan-300 transition-colors">
+                OSINT Web Links Directory
+              </h3>
+              <p className="text-xs text-slate-400 leading-relaxed font-sans">
+                Direct 1-click links to top web search engines (Shodan.io, Censys, Crt.sh, DNSDumpster, HaveIBeenPwned, Hunter.io, DomainTools WHOIS, GHDB) with copyable dorks.
+              </p>
+            </div>
+            <div className="flex items-center gap-1.5 text-xs font-mono font-bold text-cyan-400 pt-2">
+              <span>Visit OSINT Directory</span>
+              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+            </div>
+          </Link>
+
+          {/* Card 3: Practical OSINT & Kali Exam */}
+          <Link
+            href="/exam"
+            className="rounded-2xl border border-slate-800 bg-slate-900/80 p-6 space-y-4 hover:border-amber-500/50 transition-all shadow-xl group cursor-pointer flex flex-col justify-between"
+          >
+            <div className="space-y-3">
+              <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 w-fit group-hover:scale-110 transition-transform">
+                <Award className="w-6 h-6" />
+              </div>
+              <h3 className="text-lg font-bold text-white group-hover:text-amber-300 transition-colors">
+                Practical OSINT & Kali Exam
+              </h3>
+              <p className="text-xs text-slate-400 leading-relaxed font-sans">
+                Solve 6 practical exam tasks, execute Kali Linux VM commands, submit flags, and earn your official downloadable & printable Operator Certificate.
+              </p>
+            </div>
+            <div className="flex items-center gap-1.5 text-xs font-mono font-bold text-amber-400 pt-2">
+              <span>Take Certification Exam</span>
+              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+            </div>
+          </Link>
+
+          {/* Card 4: Kali & Target VM Setup */}
+          <Link
+            href="/setup"
+            className="rounded-2xl border border-slate-800 bg-slate-900/80 p-6 space-y-4 hover:border-emerald-500/50 transition-all shadow-xl group cursor-pointer flex flex-col justify-between"
+          >
+            <div className="space-y-3">
+              <div className="p-3 rounded-xl bg-purple-500/10 border border-purple-500/30 text-purple-400 w-fit group-hover:scale-110 transition-transform">
+                <Cpu className="w-6 h-6" />
+              </div>
+              <h3 className="text-lg font-bold text-white group-hover:text-purple-300 transition-colors">
+                Kali & Target VM Setup Guide
+              </h3>
+              <p className="text-xs text-slate-400 leading-relaxed font-sans">
+                Step-by-step VM setup guide for Kali Linux, Metasploitable 2 & 3 targets, VirtualBox Host-Only isolated network adapters, and troubleshooting fixes.
+              </p>
+            </div>
+            <div className="flex items-center gap-1.5 text-xs font-mono font-bold text-purple-400 pt-2">
+              <span>View VM Setup Guides</span>
+              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+            </div>
+          </Link>
+
+          {/* Card 5: Commands & Generator */}
+          <Link
+            href="/commands"
+            className="rounded-2xl border border-slate-800 bg-slate-900/80 p-6 space-y-4 hover:border-cyan-500/50 transition-all shadow-xl group cursor-pointer flex flex-col justify-between"
+          >
+            <div className="space-y-3">
+              <div className="p-3 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 w-fit group-hover:scale-110 transition-transform">
+                <Terminal className="w-6 h-6" />
+              </div>
+              <h3 className="text-lg font-bold text-white group-hover:text-cyan-300 transition-colors">
+                Command Generator & Cheatsheets
+              </h3>
+              <p className="text-xs text-slate-400 leading-relaxed font-sans">
+                Interactive flag builder for CLI tools and 50+ searchable cheatsheets covering Linux PrivEsc, SQLi payloads, and Python scripts.
+              </p>
+            </div>
+            <div className="flex items-center gap-1.5 text-xs font-mono font-bold text-cyan-400 pt-2">
+              <span>Open Command Generator</span>
+              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+            </div>
+          </Link>
+
+          {/* Card 6: Metasploitable Practice Labs */}
+          <Link
+            href="/labs"
+            className="rounded-2xl border border-slate-800 bg-slate-900/80 p-6 space-y-4 hover:border-emerald-500/50 transition-all shadow-xl group cursor-pointer flex flex-col justify-between"
+          >
+            <div className="space-y-3">
+              <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 w-fit group-hover:scale-110 transition-transform">
+                <Layers className="w-6 h-6" />
+              </div>
+              <h3 className="text-lg font-bold text-white group-hover:text-emerald-300 transition-colors">
+                Metasploitable Practice Labs
+              </h3>
+              <p className="text-xs text-slate-400 leading-relaxed font-sans">
+                Hands-on CTF lab challenges against Metasploitable targets. Submit flags, earn XP, track your level progression, and unlock achievements.
+              </p>
+            </div>
+            <div className="flex items-center gap-1.5 text-xs font-mono font-bold text-emerald-400 pt-2">
+              <span>Enter Practice Labs</span>
+              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+            </div>
+          </Link>
+        </div>
+      </section>
     </div>
   );
 }

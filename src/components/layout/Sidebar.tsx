@@ -21,6 +21,7 @@ import {
   ExternalLink,
   Award,
   Cpu,
+  LogIn,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCyberLab } from "@/context/CyberLabContext";
@@ -34,6 +35,7 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
+  { name: "Sign In / Register", href: "/login", icon: LogIn, badge: "Auth" },
   { name: "Labs", href: "/labs", icon: Layers },
   { name: "Challenges", href: "/challenges", icon: Flag },
   { name: "Learn Tools", href: "/tools", icon: Wrench, badge: "Academy" },
