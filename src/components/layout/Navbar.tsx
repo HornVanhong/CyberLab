@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import Link from "next/link";
 import {
   Menu,
   Volume2,
@@ -31,8 +32,8 @@ export function Navbar({ onMenuClick }: { onMenuClick: () => void }) {
   // Auth State
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isRegisterMode, setIsRegisterMode] = useState(false);
-  const [emailInput, setEmailInput] = useState("student@cyberlab.local");
-  const [passwordInput, setPasswordInput] = useState("student123");
+  const [emailInput, setEmailInput] = useState("");
+  const [passwordInput, setPasswordInput] = useState("");
   const [authError, setAuthError] = useState("");
   const [isAuthLoading, setIsAuthLoading] = useState(false);
 
@@ -127,16 +128,21 @@ export function Navbar({ onMenuClick }: { onMenuClick: () => void }) {
           {/* Firebase User Auth Profile Button */}
           {user ? (
             <div className="flex items-center gap-2">
-              <div className="px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 font-mono text-xs flex items-center gap-1.5">
+              <Link
+                href="/profile"
+                className="px-3 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 font-mono text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
+                title="View Operator Profile"
+              >
                 {user.photoURL ? (
                   <img src={user.photoURL} alt="Avatar" className="w-4 h-4 rounded-full" />
                 ) : (
                   <User className="w-3.5 h-3.5 text-emerald-400" />
                 )}
                 <span className="font-bold max-w-[100px] sm:max-w-[140px] truncate">
-                  {user.displayName || user.email?.split("@")[0] || "User"}
+                  {user.displayName || user.email?.split("@")[0] || "Operator"}
                 </span>
-              </div>
+              </Link>
+
               <button
                 onClick={handleLogout}
                 type="button"
@@ -195,98 +201,6 @@ export function Navbar({ onMenuClick }: { onMenuClick: () => void }) {
           </button>
         </div>
       </header>
-
-      {/* Firebase Auth Modal */}
-      <Modal
-        isOpen={isAuthModalOpen}
-        onClose={() => setIsAuthModalOpen(false)}
-        title={isRegisterMode ? "Firebase Account Registration" : "Firebase Authentication Login"}
-        description="Sign in with Google or Email to sync your CyberLab progress"
-      >
-        <div className="space-y-4">
-          {authError && (
-            <div className="p-3 rounded-lg bg-rose-950/40 border border-rose-500/40 text-rose-300 text-xs font-mono">
-              ⚠️ {authError}
-            </div>
-          )}
-
-          {/* Google 1-Click Login Button */}
-          <button
-            onClick={handleGoogleLogin}
-            disabled={isAuthLoading}
-            className="w-full py-2.5 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-mono text-xs font-bold border border-slate-700 hover:border-cyan-400 transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md"
-          >
-            <svg className="w-4 h-4" viewBox="0 0 24 24">
-              <path
-                fill="#4285F4"
-                d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"
-              />
-              <path
-                fill="#34A853"
-                d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.29v3.15C3.26 21.3 7.31 24 12 24z"
-              />
-              <path
-                fill="#FBBC05"
-                d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.29C.47 8.21 0 10.05 0 12s.47 3.79 1.29 5.42l3.99-3.15z"
-              />
-              <path
-                fill="#EA4335"
-                d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.7 1.29 6.58l3.99 3.15c.95-2.83 3.6-4.98 6.72-4.98z"
-              />
-            </svg>
-            <span>Continue with Google</span>
-          </button>
-
-          <div className="relative my-3 flex items-center justify-center">
-            <div className="w-full border-t border-slate-800" />
-            <span className="absolute bg-slate-950 px-2 text-[10px] font-mono uppercase text-slate-500">
-              Or Email Password
-            </span>
-          </div>
-
-          <form onSubmit={handleEmailAuthSubmit} className="space-y-3">
-            <div>
-              <label className="block text-xs font-mono text-slate-400 mb-1">EMAIL ADDRESS</label>
-              <input
-                type="email"
-                value={emailInput}
-                onChange={(e) => setEmailInput(e.target.value)}
-                required
-                className="w-full px-3.5 py-2.5 rounded-lg bg-slate-950 border border-slate-700 text-white font-mono text-xs focus:outline-none focus:border-emerald-400"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-mono text-slate-400 mb-1">PASSWORD</label>
-              <input
-                type="password"
-                value={passwordInput}
-                onChange={(e) => setPasswordInput(e.target.value)}
-                required
-                className="w-full px-3.5 py-2.5 rounded-lg bg-slate-950 border border-slate-700 text-white font-mono text-xs focus:outline-none focus:border-emerald-400"
-              />
-            </div>
-
-            <div className="flex items-center justify-between pt-2">
-              <button
-                type="button"
-                onClick={() => setIsRegisterMode(!isRegisterMode)}
-                className="text-xs font-mono text-cyan-400 hover:underline cursor-pointer"
-              >
-                {isRegisterMode ? "Existing user? Log in" : "Need account? Register"}
-              </button>
-
-              <button
-                type="submit"
-                disabled={isAuthLoading}
-                className="px-5 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-mono text-xs font-bold transition-all cursor-pointer"
-              >
-                {isAuthLoading ? "Processing..." : isRegisterMode ? "Register Email" : "Sign In"}
-              </button>
-            </div>
-          </form>
-        </div>
-      </Modal>
 
       {/* Target IP Edit Modal */}
       <Modal

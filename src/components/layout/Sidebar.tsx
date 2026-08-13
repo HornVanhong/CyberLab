@@ -22,6 +22,7 @@ import {
   Award,
   Cpu,
   Database,
+  User,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCyberLab } from "@/context/CyberLabContext";
@@ -35,6 +36,7 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
+  { name: "Operator Profile", href: "/profile", icon: User, badge: "Account" },
   { name: "Labs", href: "/labs", icon: Layers },
   { name: "Challenges", href: "/challenges", icon: Flag },
   { name: "Learn Tools", href: "/tools", icon: Wrench, badge: "Academy" },
