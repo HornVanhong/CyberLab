@@ -21,6 +21,7 @@ import {
   ExternalLink,
   Award,
   Cpu,
+  Database,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCyberLab } from "@/context/CyberLabContext";
@@ -42,6 +43,7 @@ const navItems: NavItem[] = [
   { name: "OSINT & Kali Exam", href: "/exam", icon: Award, badge: "Cert" },
   { name: "Commands & Generator", href: "/commands", icon: Terminal },
   { name: "Flag & Command Quiz", href: "/quiz", icon: HelpCircle, badge: "Interactive" },
+  { name: "Database Explorer", href: "/admin", icon: Database, badge: "PostgreSQL" },
   { name: "Progress", href: "/progress", icon: BarChart3 },
   { name: "Settings", href: "/settings", icon: Settings },
 ];
@@ -73,11 +75,11 @@ export function Sidebar({ isOpen, onClose }: { isOpen?: boolean; onClose?: () =>
       >
         {/* Brand Header */}
         <div className="flex items-center gap-3 px-6 h-16 border-b border-slate-800/80 bg-slate-900/40">
-          <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.2)]">
+          <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.2)]">
             <Shield className="w-5 h-5" />
           </div>
           <div>
-            <div className="flex items-center gap-1.5 font-mono text-base font-bold tracking-tight text-white">
+            <div className="flex items-center gap-1.5 font-mono text-base font-extrabold tracking-tight text-white">
               <span>Cyber</span>
               <span className="text-emerald-400">Lab</span>
               <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono font-normal">
@@ -115,16 +117,16 @@ export function Sidebar({ isOpen, onClose }: { isOpen?: boolean; onClose?: () =>
                       active ? "text-emerald-400" : "text-slate-400 group-hover:text-slate-300"
                     )}
                   />
-                  <span>{item.name}</span>
+                  <span className="truncate">{item.name}</span>
                 </div>
-                {item.name === "Progress" && (
-                  <span className="text-[11px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-emerald-400 font-semibold border border-slate-700/60">
-                    {stats.progressPercentage}%
+                {item.badge && (
+                  <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-cyan-400 font-semibold border border-slate-700/60 shrink-0">
+                    {item.badge}
                   </span>
                 )}
-                {item.badge && item.name !== "Progress" && (
-                  <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-300 font-semibold border border-cyan-500/30">
-                    {item.badge}
+                {item.name === "Progress" && (
+                  <span className="text-[11px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-emerald-400 font-semibold border border-slate-700/60 shrink-0">
+                    {stats.progressPercentage}%
                   </span>
                 )}
               </Link>
