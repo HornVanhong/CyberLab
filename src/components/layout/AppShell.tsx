@@ -4,12 +4,14 @@ import React, { useState } from "react";
 import { Sidebar } from "./Sidebar";
 import { Navbar } from "./Navbar";
 import { CyberLabProvider } from "@/context/CyberLabContext";
+import { AuthProvider } from "@/context/AuthContext";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <CyberLabProvider>
+    <AuthProvider>
+      <CyberLabProvider>
       <div className="relative min-h-screen flex bg-slate-950 text-slate-100 cyber-grid">
         {/* Background ambient glow circles */}
         <div className="fixed top-0 left-1/4 w-96 h-96 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
@@ -32,5 +34,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </div>
     </CyberLabProvider>
+    </AuthProvider>
   );
 }

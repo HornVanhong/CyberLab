@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   Menu,
   Volume2,
@@ -17,82 +17,57 @@ import {
   Key,
 } from "lucide-react";
 import { useCyberLab } from "@/context/CyberLabContext";
+import { useAuth } from "@/context/AuthContext";
 import { Modal } from "@/components/ui/Modal";
 
 export function Navbar({ onMenuClick }: { onMenuClick: () => void }) {
   const { progress, stats, getTargetIp, setTargetIp, updateSettings } = useCyberLab();
+  const { user, loginGoogle, loginEmail, registerEmail, logout } = useAuth();
   const currentIp = getTargetIp();
 
   const [isEditIpOpen, setIsEditIpOpen] = useState(false);
   const [ipInput, setIpInput] = useState(currentIp);
 
   // Auth State
-  const [authUser, setAuthUser] = useState<{ username: string; email: string; role: string; xp: number } | null>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isRegisterMode, setIsRegisterMode] = useState(false);
   const [emailInput, setEmailInput] = useState("student@cyberlab.local");
   const [passwordInput, setPasswordInput] = useState("student123");
-  const [usernameInput, setUsernameInput] = useState("student");
   const [authError, setAuthError] = useState("");
   const [isAuthLoading, setIsAuthLoading] = useState(false);
 
-  // Check authenticated session on load
-  const checkAuth = async () => {
-    try {
-      const res = await fetch("/api/auth/me");
-      const data = await res.json();
-      if (data.authenticated && data.user) {
-        setAuthUser(data.user);
-      } else {
-        setAuthUser(null);
-      }
-    } catch {
-      setAuthUser(null);
+  const handleGoogleLogin = async () => {
+    setAuthError("");
+    setIsAuthLoading(true);
+    const { error } = await loginGoogle();
+    setIsAuthLoading(false);
+    if (error) {
+      setAuthError(error);
+    } else {
+      setIsAuthModalOpen(false);
     }
   };
 
-  useEffect(() => {
-    checkAuth();
-  }, []);
-
-  const handleAuthSubmit = async (e: React.FormEvent) => {
+  const handleEmailAuthSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthError("");
     setIsAuthLoading(true);
 
-    const endpoint = isRegisterMode ? "/api/auth/register" : "/api/auth/login";
-    const payload = isRegisterMode
-      ? { username: usernameInput, email: emailInput, password: passwordInput }
-      : { email: emailInput, password: passwordInput };
+    const { error } = isRegisterMode
+      ? await registerEmail(emailInput, passwordInput)
+      : await loginEmail(emailInput, passwordInput);
 
-    try {
-      const res = await fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      const data = await res.json();
+    setIsAuthLoading(false);
 
-      if (!res.ok) {
-        setAuthError(data.error || "Authentication failed");
-      } else {
-        setAuthUser(data.user);
-        setIsAuthModalOpen(false);
-      }
-    } catch {
-      setAuthError("Network connection error");
-    } finally {
-      setIsAuthLoading(false);
+    if (error) {
+      setAuthError(error);
+    } else {
+      setIsAuthModalOpen(false);
     }
   };
 
   const handleLogout = async () => {
-    try {
-      await fetch("/api/auth/logout", { method: "POST" });
-      setAuthUser(null);
-    } catch {
-      // logout fallback
-    }
+    await logout();
   };
 
   const handleSaveIp = (e: React.FormEvent) => {
@@ -123,11 +98,13 @@ export function Navbar({ onMenuClick }: { onMenuClick: () => void }) {
             <span className="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
             <span className="text-slate-300 font-semibold">LAB ENVIRONMENT</span>
             <span className="text-slate-600">/</span>
-            <span className="text-emerald-400">{progress.currentLabId === "metasploitable-2" ? "Metasploitable 2" : progress.currentLabId}</span>
+            <span className="text-emerald-400">
+              {progress.currentLabId === "metasploitable-2" ? "Metasploitable 2" : progress.currentLabId}
+            </span>
           </div>
         </div>
 
-        {/* Right Section: Target IP, Auth, XP Pill, Sound Toggle */}
+        {/* Right Section: Target IP, Firebase Auth, XP Pill, Sound Toggle */}
         <div className="flex items-center gap-2.5 sm:gap-4">
           {/* Target IP Pill */}
           <button
@@ -147,19 +124,27 @@ export function Navbar({ onMenuClick }: { onMenuClick: () => void }) {
             <Edit2 className="w-3 h-3 text-slate-400 group-hover:text-cyan-400" />
           </button>
 
-          {/* User Auth Profile Button */}
-          {authUser ? (
+          {/* Firebase User Auth Profile Button */}
+          {user ? (
             <div className="flex items-center gap-2">
-              <div className="px-3 py-1.5 rounded-lg bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 font-mono text-xs flex items-center gap-1.5">
-                <User className="w-3.5 h-3.5 text-cyan-400" />
-                <span className="font-bold">{authUser.username}</span>
-                <span className="text-[10px] bg-cyan-950 px-1 py-0.2 rounded text-cyan-400 uppercase">{authUser.role}</span>
+              <div className="px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 font-mono text-xs flex items-center gap-1.5">
+                {user.photoURL ? (
+                  <img src={user.photoURL} alt="Avatar" className="w-4 h-4 rounded-full" />
+                ) : (
+                  <User className="w-3.5 h-3.5 text-emerald-400" />
+                )}
+                <span className="font-bold max-w-[100px] sm:max-w-[140px] truncate">
+                  {user.displayName || user.email?.split("@")[0] || "User"}
+                </span>
+                <span className="text-[10px] bg-emerald-950 px-1 py-0.2 rounded text-emerald-400 uppercase font-semibold">
+                  Firebase
+                </span>
               </div>
               <button
                 onClick={handleLogout}
                 type="button"
                 className="p-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-400 hover:text-rose-400 hover:border-rose-500/30 transition-all cursor-pointer"
-                title="Logout"
+                title="Sign Out"
               >
                 <LogOut className="w-3.5 h-3.5" />
               </button>
@@ -171,7 +156,7 @@ export function Navbar({ onMenuClick }: { onMenuClick: () => void }) {
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-emerald-500/40 text-xs font-mono text-emerald-400 transition-all cursor-pointer font-bold"
             >
               <LogIn className="w-3.5 h-3.5" />
-              <span>Log In</span>
+              <span>Firebase Login</span>
             </button>
           )}
 
@@ -197,81 +182,96 @@ export function Navbar({ onMenuClick }: { onMenuClick: () => void }) {
         </div>
       </header>
 
-      {/* Auth Modal */}
+      {/* Firebase Auth Modal */}
       <Modal
         isOpen={isAuthModalOpen}
         onClose={() => setIsAuthModalOpen(false)}
-        title={isRegisterMode ? "Create CyberLab Account" : "User Authentication Login"}
-        description={isRegisterMode ? "Register a new full-stack profile" : "Log into your account to sync XP and certificates"}
+        title={isRegisterMode ? "Firebase Account Registration" : "Firebase Authentication Login"}
+        description="Sign in with Google or Email to sync your CyberLab progress"
       >
-        <form onSubmit={handleAuthSubmit} className="space-y-4">
+        <div className="space-y-4">
           {authError && (
             <div className="p-3 rounded-lg bg-rose-950/40 border border-rose-500/40 text-rose-300 text-xs font-mono">
               ⚠️ {authError}
             </div>
           )}
 
-          {isRegisterMode && (
+          {/* Google 1-Click Login Button */}
+          <button
+            onClick={handleGoogleLogin}
+            disabled={isAuthLoading}
+            className="w-full py-2.5 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-mono text-xs font-bold border border-slate-700 hover:border-cyan-400 transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md"
+          >
+            <svg className="w-4 h-4" viewBox="0 0 24 24">
+              <path
+                fill="#4285F4"
+                d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"
+              />
+              <path
+                fill="#34A853"
+                d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.29v3.15C3.26 21.3 7.31 24 12 24z"
+              />
+              <path
+                fill="#FBBC05"
+                d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.29C.47 8.21 0 10.05 0 12s.47 3.79 1.29 5.42l3.99-3.15z"
+              />
+              <path
+                fill="#EA4335"
+                d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.7 1.29 6.58l3.99 3.15c.95-2.83 3.6-4.98 6.72-4.98z"
+              />
+            </svg>
+            <span>Continue with Google</span>
+          </button>
+
+          <div className="relative my-3 flex items-center justify-center">
+            <div className="w-full border-t border-slate-800" />
+            <span className="absolute bg-slate-950 px-2 text-[10px] font-mono uppercase text-slate-500">
+              Or Email Password
+            </span>
+          </div>
+
+          <form onSubmit={handleEmailAuthSubmit} className="space-y-3">
             <div>
-              <label className="block text-xs font-mono text-slate-400 mb-1">USERNAME</label>
+              <label className="block text-xs font-mono text-slate-400 mb-1">EMAIL ADDRESS</label>
               <input
-                type="text"
-                value={usernameInput}
-                onChange={(e) => setUsernameInput(e.target.value)}
+                type="email"
+                value={emailInput}
+                onChange={(e) => setEmailInput(e.target.value)}
                 required
-                className="w-full px-3.5 py-2.5 rounded-lg bg-slate-950 border border-slate-700 text-white font-mono text-xs"
+                className="w-full px-3.5 py-2.5 rounded-lg bg-slate-950 border border-slate-700 text-white font-mono text-xs focus:outline-none focus:border-emerald-400"
               />
             </div>
-          )}
 
-          <div>
-            <label className="block text-xs font-mono text-slate-400 mb-1">EMAIL ADDRESS</label>
-            <input
-              type="email"
-              value={emailInput}
-              onChange={(e) => setEmailInput(e.target.value)}
-              required
-              className="w-full px-3.5 py-2.5 rounded-lg bg-slate-950 border border-slate-700 text-white font-mono text-xs"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-mono text-slate-400 mb-1">PASSWORD</label>
-            <input
-              type="password"
-              value={passwordInput}
-              onChange={(e) => setPasswordInput(e.target.value)}
-              required
-              className="w-full px-3.5 py-2.5 rounded-lg bg-slate-950 border border-slate-700 text-white font-mono text-xs"
-            />
-          </div>
-
-          {!isRegisterMode && (
-            <div className="p-3 rounded-lg bg-slate-950 border border-slate-800 text-[11px] font-mono text-slate-400 space-y-1">
-              <span className="font-bold text-cyan-400 block">Default Accounts:</span>
-              <p>Student: <code className="text-emerald-400">student@cyberlab.local / student123</code></p>
-              <p>Admin: <code className="text-amber-400">admin@cyberlab.local / admin123</code></p>
+            <div>
+              <label className="block text-xs font-mono text-slate-400 mb-1">PASSWORD</label>
+              <input
+                type="password"
+                value={passwordInput}
+                onChange={(e) => setPasswordInput(e.target.value)}
+                required
+                className="w-full px-3.5 py-2.5 rounded-lg bg-slate-950 border border-slate-700 text-white font-mono text-xs focus:outline-none focus:border-emerald-400"
+              />
             </div>
-          )}
 
-          <div className="flex items-center justify-between pt-2">
-            <button
-              type="button"
-              onClick={() => setIsRegisterMode(!isRegisterMode)}
-              className="text-xs font-mono text-cyan-400 hover:underline cursor-pointer"
-            >
-              {isRegisterMode ? "Already have an account? Log in" : "Need an account? Register here"}
-            </button>
+            <div className="flex items-center justify-between pt-2">
+              <button
+                type="button"
+                onClick={() => setIsRegisterMode(!isRegisterMode)}
+                className="text-xs font-mono text-cyan-400 hover:underline cursor-pointer"
+              >
+                {isRegisterMode ? "Existing user? Log in" : "Need account? Register"}
+              </button>
 
-            <button
-              type="submit"
-              disabled={isAuthLoading}
-              className="px-5 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-mono text-xs font-bold transition-all cursor-pointer"
-            >
-              {isAuthLoading ? "Processing..." : isRegisterMode ? "Register Account" : "Log In"}
-            </button>
-          </div>
-        </form>
+              <button
+                type="submit"
+                disabled={isAuthLoading}
+                className="px-5 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-mono text-xs font-bold transition-all cursor-pointer"
+              >
+                {isAuthLoading ? "Processing..." : isRegisterMode ? "Register Email" : "Sign In"}
+              </button>
+            </div>
+          </form>
+        </div>
       </Modal>
 
       {/* Target IP Edit Modal */}
