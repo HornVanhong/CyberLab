@@ -1,5 +1,13 @@
 import { Pool } from "pg";
 
+export interface UserRecord {
+  id: string;
+  email: string;
+  display_name?: string;
+  created_at?: Date | string;
+  updated_at?: Date | string;
+}
+
 // Render PostgreSQL requires SSL connection in production/external connection
 const connectionString = process.env.DATABASE_URL;
 
@@ -102,7 +110,7 @@ export async function query(text: string, params?: any[]) {
 /**
  * Save user profile to database
  */
-export async function upsertUser(id: string, email: string, displayName?: string) {
+export async function upsertUser(id: string, email: string, displayName?: string): Promise<UserRecord> {
   const text = `
     INSERT INTO users (id, email, display_name, updated_at)
     VALUES ($1, $2, $3, CURRENT_TIMESTAMP)
@@ -117,9 +125,40 @@ export async function upsertUser(id: string, email: string, displayName?: string
 }
 
 /**
+ * Get user by ID from database
+ */
+export async function getUserById(id: string): Promise<UserRecord | null> {
+  if (!connectionString) return null;
+  try {
+    const text = `SELECT * FROM users WHERE id = $1;`;
+    const res = await pool.query(text, [id]);
+    return res.rows[0] || null;
+  } catch (error) {
+    console.error("getUserById error:", error);
+    return null;
+  }
+}
+
+/**
+ * Get user by Email from database
+ */
+export async function getUserByEmail(email: string): Promise<UserRecord | null> {
+  if (!connectionString) return null;
+  try {
+    const text = `SELECT * FROM users WHERE email = $1;`;
+    const res = await pool.query(text, [email]);
+    return res.rows[0] || null;
+  } catch (error) {
+    console.error("getUserByEmail error:", error);
+    return null;
+  }
+}
+
+/**
  * Get user progress from database
  */
 export async function getUserProgress(userId: string) {
+  if (!connectionString) return null;
   const text = `SELECT * FROM user_progress WHERE user_id = $1;`;
   const res = await pool.query(text, [userId]);
   return res.rows[0] || null;
@@ -142,6 +181,7 @@ export async function saveUserProgress(
     totalScore?: number;
   }
 ) {
+  if (!connectionString) return null;
   const text = `
     INSERT INTO user_progress (
       user_id, current_lab_id, completed_challenges, revealed_hints, scores, attempts, target_ips, settings, last_challenge, total_score, updated_at
@@ -187,6 +227,7 @@ export async function logChallengeAttempt(
   isCorrect: boolean,
   pointsEarned: number
 ) {
+  if (!connectionString) return null;
   const text = `
     INSERT INTO challenge_logs (user_id, challenge_id, submitted_flag, is_correct, points_earned)
     VALUES ($1, $2, $3, $4, $5)

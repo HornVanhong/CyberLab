@@ -49,7 +49,7 @@ export function verifyToken(token: string): TokenPayload | null {
 }
 
 // Extract Authenticated User from API Request
-export function getAuthenticatedUser(req: NextRequest): UserRecord | null {
+export async function getAuthenticatedUser(req: NextRequest): Promise<UserRecord | null> {
   const authHeader = req.headers.get("authorization");
   let token: string | undefined;
 
@@ -64,6 +64,6 @@ export function getAuthenticatedUser(req: NextRequest): UserRecord | null {
   const payload = verifyToken(token);
   if (!payload) return null;
 
-  const user = getUserById(payload.userId);
+  const user = await getUserById(payload.userId);
   return user || null;
 }
