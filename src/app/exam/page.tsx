@@ -28,6 +28,7 @@ import { PRACTICAL_EXAM_TASKS, ExamTask } from "@/data/examData";
 import { TerminalBox } from "@/components/ui/TerminalBox";
 import { Modal } from "@/components/ui/Modal";
 import { playSound } from "@/lib/sound";
+import { AuthGuard } from "@/components/auth/AuthGuard";
 
 export default function PracticalExamPage() {
   const [activeTaskIndex, setActiveTaskIndex] = useState(0);
@@ -130,7 +131,8 @@ export default function PracticalExamPage() {
   };
 
   return (
-    <div className="space-y-8 animate-fadeIn pb-12">
+    <AuthGuard>
+      <div className="space-y-8 animate-fadeIn pb-12">
       {/* Header Banner */}
       <div className="relative overflow-hidden rounded-2xl border border-slate-800 bg-gradient-to-r from-slate-900 via-slate-900/90 to-slate-950 p-6 sm:p-8 shadow-2xl">
         <div className="absolute top-0 right-0 -mt-10 -mr-10 w-72 h-72 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
@@ -514,5 +516,6 @@ export default function PracticalExamPage() {
         </div>
       </Modal>
     </div>
+    </AuthGuard>
   );
 }

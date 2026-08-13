@@ -136,9 +136,6 @@ export function Navbar({ onMenuClick }: { onMenuClick: () => void }) {
                 <span className="font-bold max-w-[100px] sm:max-w-[140px] truncate">
                   {user.displayName || user.email?.split("@")[0] || "User"}
                 </span>
-                <span className="text-[10px] bg-emerald-950 px-1 py-0.2 rounded text-emerald-400 uppercase font-semibold">
-                  Firebase
-                </span>
               </div>
               <button
                 onClick={handleLogout}
@@ -150,14 +147,31 @@ export function Navbar({ onMenuClick }: { onMenuClick: () => void }) {
               </button>
             </div>
           ) : (
-            <button
-              onClick={() => setIsAuthModalOpen(true)}
-              type="button"
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-emerald-500/40 text-xs font-mono text-emerald-400 transition-all cursor-pointer font-bold"
-            >
-              <LogIn className="w-3.5 h-3.5" />
-              <span>Firebase Login</span>
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  setIsRegisterMode(false);
+                  setIsAuthModalOpen(true);
+                }}
+                type="button"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-cyan-500/40 text-xs font-mono text-slate-200 transition-all cursor-pointer font-bold"
+              >
+                <LogIn className="w-3.5 h-3.5 text-cyan-400" />
+                <span>Sign In</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  setIsRegisterMode(true);
+                  setIsAuthModalOpen(true);
+                }}
+                type="button"
+                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-mono font-bold transition-all cursor-pointer shadow-md shadow-emerald-500/20"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Sign Up</span>
+              </button>
+            </div>
           )}
 
           {/* Total Score Badge */}

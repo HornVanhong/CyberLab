@@ -19,6 +19,7 @@ import {
 import { useCyberLab } from "@/context/CyberLabContext";
 import { StatusBadge, DifficultyBadge, Badge } from "@/components/ui/Badge";
 import { ProgressBar } from "@/components/ui/ProgressBar";
+import { AuthGuard } from "@/components/auth/AuthGuard";
 
 export default function LabsPage() {
   const { labs, challenges, isChallengeCompleted } = useCyberLab();
@@ -41,7 +42,8 @@ export default function LabsPage() {
   const activeLabsCount = labs.filter((l) => l.status === "In Progress" || l.status === "Available").length;
 
   return (
-    <div className="space-y-8 animate-fadeIn">
+    <AuthGuard>
+      <div className="space-y-8 animate-fadeIn">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-6 border-b border-slate-800">
         <div>
@@ -154,6 +156,7 @@ export default function LabsPage() {
           );
         })}
       </div>
-    </div>
+      </div>
+    </AuthGuard>
   );
 }

@@ -21,12 +21,25 @@ import {
   HelpCircle,
   BarChart3,
   Server,
+  UserPlus,
+  LogIn,
 } from "lucide-react";
 import { useCyberLab } from "@/context/CyberLabContext";
+import { useAuth } from "@/context/AuthContext";
+import { AuthModal } from "@/components/auth/AuthModal";
 
 export default function LandingHomePage() {
   const { stats } = useCyberLab();
+  const { user, loginGoogle } = useAuth();
+  
   const [activeTabCommand, setActiveTabCommand] = useState<string>("nmap");
+  const [authModalOpen, setAuthModalOpen] = useState<boolean>(false);
+  const [authInitialTab, setAuthInitialTab] = useState<"login" | "register">("login");
+
+  const openAuth = (tab: "login" | "register") => {
+    setAuthInitialTab(tab);
+    setAuthModalOpen(true);
+  };
 
   const terminalDemos: Record<string, { cmd: string; output: string }> = {
     nmap: {
@@ -53,6 +66,13 @@ export default function LandingHomePage() {
 
   return (
     <div className="space-y-16 animate-fadeIn pb-16">
+      {/* Auth Modal Popup */}
+      <AuthModal
+        isOpen={authModalOpen}
+        onClose={() => setAuthModalOpen(false)}
+        initialTab={authInitialTab}
+      />
+
       {/* 🚀 HERO SECTION */}
       <section className="relative overflow-hidden rounded-3xl border border-slate-800 bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 p-6 sm:p-10 lg:p-12 shadow-2xl">
         <div className="absolute top-0 right-0 -mt-12 -mr-12 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
@@ -79,29 +99,79 @@ export default function LandingHomePage() {
 
             {/* CTA Buttons */}
             <div className="flex flex-wrap items-center gap-4 pt-2">
-              <Link
-                href="/labs"
-                className="px-6 py-3.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-mono text-xs font-extrabold transition-all flex items-center gap-2 shadow-xl shadow-emerald-500/20 cursor-pointer"
-              >
-                <Play className="w-4 h-4 fill-current" />
-                <span>Start Practice Labs</span>
-              </Link>
+              {user ? (
+                <>
+                  <Link
+                    href="/labs"
+                    className="px-6 py-3.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-mono text-xs font-extrabold transition-all flex items-center gap-2 shadow-xl shadow-emerald-500/20 cursor-pointer"
+                  >
+                    <Play className="w-4 h-4 fill-current" />
+                    <span>Enter Practice Labs</span>
+                  </Link>
 
-              <Link
-                href="/osint-resources"
-                className="px-6 py-3.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-cyan-300 border border-slate-800 hover:border-cyan-500/40 font-mono text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shadow-lg"
-              >
-                <Globe className="w-4 h-4 text-cyan-400" />
-                <span>Explore OSINT Portals</span>
-              </Link>
+                  <Link
+                    href="/osint-resources"
+                    className="px-6 py-3.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-cyan-300 border border-slate-800 hover:border-cyan-500/40 font-mono text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shadow-lg"
+                  >
+                    <Globe className="w-4 h-4 text-cyan-400" />
+                    <span>Explore OSINT Portals</span>
+                  </Link>
 
-              <Link
-                href="/exam"
-                className="px-6 py-3.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 font-mono text-xs font-bold transition-all flex items-center gap-2 cursor-pointer"
-              >
-                <Award className="w-4 h-4 text-amber-400" />
-                <span>Take Exam</span>
-              </Link>
+                  <Link
+                    href="/exam"
+                    className="px-6 py-3.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 font-mono text-xs font-bold transition-all flex items-center gap-2 cursor-pointer"
+                  >
+                    <Award className="w-4 h-4 text-amber-400" />
+                    <span>Take Exam</span>
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={() => openAuth("login")}
+                    type="button"
+                    className="px-6 py-3.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-mono text-xs font-extrabold transition-all flex items-center gap-2 shadow-xl shadow-emerald-500/20 cursor-pointer"
+                  >
+                    <LogIn className="w-4 h-4" />
+                    <span>Sign In</span>
+                  </button>
+
+                  <button
+                    onClick={() => openAuth("register")}
+                    type="button"
+                    className="px-6 py-3.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-cyan-300 border border-slate-800 hover:border-cyan-500/40 font-mono text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shadow-lg"
+                  >
+                    <UserPlus className="w-4 h-4 text-cyan-400" />
+                    <span>Create Free Account / Sign Up</span>
+                  </button>
+
+                  <button
+                    onClick={() => loginGoogle()}
+                    type="button"
+                    className="px-6 py-3.5 rounded-xl bg-slate-950 hover:bg-slate-900 text-slate-200 border border-slate-800 hover:border-slate-700 font-mono text-xs font-bold transition-all flex items-center gap-2 cursor-pointer"
+                  >
+                    <svg className="w-4 h-4" viewBox="0 0 24 24">
+                      <path
+                        fill="#4285F4"
+                        d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"
+                      />
+                      <path
+                        fill="#34A853"
+                        d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.29v3.15C3.26 21.3 7.31 24 12 24z"
+                      />
+                      <path
+                        fill="#FBBC05"
+                        d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.29C.47 8.21 0 10.05 0 12s.47 3.79 1.29 5.42l3.99-3.15z"
+                      />
+                      <path
+                        fill="#EA4335"
+                        d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.7 1.29 6.58l3.99 3.15c.95-2.83 3.6-4.98 6.72-4.98z"
+                      />
+                    </svg>
+                    <span>1-Click Google Sign In</span>
+                  </button>
+                </>
+              )}
             </div>
 
             {/* Quick Metrics */}
