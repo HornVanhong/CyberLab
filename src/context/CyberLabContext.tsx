@@ -21,6 +21,7 @@ import {
 } from "../lib/storage";
 import { playSound } from "../lib/sound";
 import { triggerConfetti } from "../lib/celebrate";
+import { useAuth } from "./AuthContext";
 
 interface CategoryStat {
   category: ChallengeCategory;
@@ -66,39 +67,136 @@ interface CyberLabContextType {
 const CyberLabContext = createContext<CyberLabContextType | null>(null);
 
 export function CyberLabProvider({ children }: { children: React.ReactNode }) {
+  const { user } = useAuth();
   const [progress, setProgress] = useState<ProgressState>(INITIAL_PROGRESS_STATE);
   const [isLoaded, setIsLoaded] = useState<boolean>(false);
 
-  // Load from localStorage on client mount
+  // 1. Load from localStorage on client mount
   useEffect(() => {
     const loaded = loadProgressFromStorage();
     setProgress(loaded);
     setIsLoaded(true);
   }, []);
 
-  // Save to localStorage on state changes once loaded
+  // 2. Load and merge from PostgreSQL Database if user is authenticated
+  useEffect(() => {
+    if (isLoaded && user?.uid) {
+      fetch(`/api/progress?userId=${encodeURIComponent(user.uid)}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success && data.progress) {
+            const dbP = data.progress;
+            setProgress((prev) => ({
+              ...prev,
+              currentLabId: dbP.current_lab_id || prev.currentLabId,
+              completedChallenges: Array.from(
+                new Set([...(prev.completedChallenges || []), ...(dbP.completed_challenges || [])])
+              ),
+              revealedHints: { ...prev.revealedHints, ...(dbP.revealed_hints || {}) },
+              scores: { ...prev.scores, ...(dbP.scores || {}) },
+              attempts: { ...prev.attempts, ...(dbP.attempts || {}) },
+              targetIps: { ...prev.targetIps, ...(dbP.target_ips || {}) },
+              settings: { ...prev.settings, ...(dbP.settings || {}) },
+              lastChallenge: dbP.last_challenge || prev.lastChallenge,
+            }));
+          }
+        })
+        .catch((err) => console.error("Database sync fetch error:", err));
+    }
+  }, [user?.uid, isLoaded]);
+
+  // 3. Save to localStorage on state changes once loaded
   useEffect(() => {
     if (isLoaded) {
       saveProgressToStorage(progress);
     }
   }, [progress, isLoaded]);
 
+  // Compute Overall Stats
+  const stats: OverallStats = useMemo(() => {
+    const totalLabs = LABS.length;
+    const totalChallenges = CHALLENGES.length;
+    const completedChallenges = progress.completedChallenges.length;
+
+    const totalScore = Object.values(progress.scores).reduce((sum, s) => sum + (s || 0), 0);
+    const maxScore = CHALLENGES.reduce((sum, c) => sum + c.points, 0);
+    const progressPercentage = totalChallenges > 0 ? Math.round((completedChallenges / totalChallenges) * 100) : 0;
+
+    const categories: ChallengeCategory[] = [
+      "Reconnaissance",
+      "Enumeration",
+      "Vulnerability Analysis",
+      "Initial Access",
+      "Privilege Escalation",
+      "Flags",
+    ];
+
+    const categoryStats: CategoryStat[] = categories.map((cat) => {
+      const catChallenges = CHALLENGES.filter((c) => c.category === cat);
+      const catCompleted = catChallenges.filter((c) => progress.completedChallenges.includes(c.id));
+      const totalXp = catChallenges.reduce((sum, c) => sum + c.points, 0);
+      const earnedXp = catCompleted.reduce((sum, c) => sum + (progress.scores[c.id] || c.points), 0);
+      const percentage = catChallenges.length > 0 ? Math.round((catCompleted.length / catChallenges.length) * 100) : 0;
+
+      return {
+        category: cat,
+        total: catChallenges.length,
+        completed: catCompleted.length,
+        percentage,
+        earnedXp,
+        totalXp,
+      };
+    });
+
+    return {
+      totalLabs,
+      totalChallenges,
+      completedChallenges,
+      totalScore,
+      maxScore,
+      progressPercentage,
+      categoryStats,
+    };
+  }, [progress.completedChallenges, progress.scores]);
+
+  // 4. Sync progress to PostgreSQL Database when progress or totalScore changes
+  useEffect(() => {
+    if (isLoaded && user?.uid) {
+      fetch("/api/progress", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: user.uid,
+          email: user.email,
+          progress: {
+            currentLabId: progress.currentLabId,
+            completedChallenges: progress.completedChallenges,
+            revealedHints: progress.revealedHints,
+            scores: progress.scores,
+            attempts: progress.attempts,
+            targetIps: progress.targetIps,
+            settings: progress.settings,
+            lastChallenge: progress.lastChallenge,
+            totalScore: stats.totalScore,
+          },
+        }),
+      }).catch((err) => console.error("Database sync save error:", err));
+    }
+  }, [progress, user?.uid, user?.email, isLoaded, stats.totalScore]);
+
   // Check if a challenge is unlocked
-  // Challenge 1 is unlocked by default. Subsequent challenges require the previous one in the same lab to be completed.
   const isChallengeUnlocked = useCallback(
     (challengeId: string): boolean => {
       const challenge = CHALLENGES.find((c) => c.id === challengeId);
       if (!challenge) return false;
 
-      // Find all challenges for this lab, sorted by order
       const labChallenges = CHALLENGES.filter((c) => c.labId === challenge.labId).sort(
         (a, b) => a.order - b.order
       );
 
       const index = labChallenges.findIndex((c) => c.id === challengeId);
-      if (index <= 0) return true; // First challenge is unlocked
+      if (index <= 0) return true;
 
-      // Check if previous challenge is completed
       const previousChallenge = labChallenges[index - 1];
       return progress.completedChallenges.includes(previousChallenge.id);
     },
@@ -148,10 +246,8 @@ export function CyberLabProvider({ children }: { children: React.ReactNode }) {
 
       const trimmed = submittedFlag.trim();
       const prefix = progress.settings.flagPrefix || "LAB";
-      // Check format e.g. LAB{...} or dynamic prefix
       const formatRegex = new RegExp(`^${prefix}\\{[^{}]+\\}$`, "i");
 
-      // Track attempt count
       const currentAttempts = (progress.attempts[challengeId] || 0) + 1;
 
       if (!formatRegex.test(trimmed)) {
@@ -160,6 +256,21 @@ export function CyberLabProvider({ children }: { children: React.ReactNode }) {
           ...prev,
           attempts: { ...prev.attempts, [challengeId]: currentAttempts },
         }));
+
+        if (user?.uid) {
+          fetch("/api/log-attempt", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              userId: user.uid,
+              challengeId,
+              submittedFlag: trimmed,
+              isCorrect: false,
+              pointsEarned: 0,
+            }),
+          }).catch(() => {});
+        }
+
         return {
           isValidFormat: false,
           isCorrect: false,
@@ -167,7 +278,6 @@ export function CyberLabProvider({ children }: { children: React.ReactNode }) {
         };
       }
 
-      // Check correctness
       const isCorrect = trimmed.toLowerCase() === challenge.expectedFlag.toLowerCase();
 
       if (!isCorrect) {
@@ -176,6 +286,21 @@ export function CyberLabProvider({ children }: { children: React.ReactNode }) {
           ...prev,
           attempts: { ...prev.attempts, [challengeId]: currentAttempts },
         }));
+
+        if (user?.uid) {
+          fetch("/api/log-attempt", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              userId: user.uid,
+              challengeId,
+              submittedFlag: trimmed,
+              isCorrect: false,
+              pointsEarned: 0,
+            }),
+          }).catch(() => {});
+        }
+
         return {
           isValidFormat: true,
           isCorrect: false,
@@ -194,7 +319,20 @@ export function CyberLabProvider({ children }: { children: React.ReactNode }) {
       playSound("success", progress.settings.soundEffects);
       triggerConfetti();
 
-      // Update state
+      if (user?.uid) {
+        fetch("/api/log-attempt", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userId: user.uid,
+            challengeId,
+            submittedFlag: trimmed,
+            isCorrect: true,
+            pointsEarned,
+          }),
+        }).catch(() => {});
+      }
+
       setProgress((prev) => {
         const isAlreadyCompleted = prev.completedChallenges.includes(challengeId);
         const updatedCompleted = isAlreadyCompleted
@@ -228,10 +366,9 @@ export function CyberLabProvider({ children }: { children: React.ReactNode }) {
         penaltyApplied: totalPenalty,
       };
     },
-    [progress]
+    [progress, user?.uid]
   );
 
-  // Reveal a hint
   const revealHint = useCallback(
     (challengeId: string, hintId: number) => {
       playSound("hint", progress.settings.soundEffects);
@@ -251,7 +388,6 @@ export function CyberLabProvider({ children }: { children: React.ReactNode }) {
     [progress.settings.soundEffects]
   );
 
-  // Set Target IP for a lab
   const setTargetIp = useCallback((labId: string, ip: string) => {
     const cleanIp = ip.trim();
     setProgress((prev) => ({
@@ -300,53 +436,6 @@ export function CyberLabProvider({ children }: { children: React.ReactNode }) {
     }
     return false;
   }, []);
-
-  // Compute Overall Stats
-  const stats: OverallStats = useMemo(() => {
-    const totalLabs = LABS.length;
-    const totalChallenges = CHALLENGES.length;
-    const completedChallenges = progress.completedChallenges.length;
-
-    const totalScore = Object.values(progress.scores).reduce((sum, s) => sum + (s || 0), 0);
-    const maxScore = CHALLENGES.reduce((sum, c) => sum + c.points, 0);
-    const progressPercentage = totalChallenges > 0 ? Math.round((completedChallenges / totalChallenges) * 100) : 0;
-
-    const categories: ChallengeCategory[] = [
-      "Reconnaissance",
-      "Enumeration",
-      "Vulnerability Analysis",
-      "Initial Access",
-      "Privilege Escalation",
-      "Flags",
-    ];
-
-    const categoryStats: CategoryStat[] = categories.map((cat) => {
-      const catChallenges = CHALLENGES.filter((c) => c.category === cat);
-      const catCompleted = catChallenges.filter((c) => progress.completedChallenges.includes(c.id));
-      const totalXp = catChallenges.reduce((sum, c) => sum + c.points, 0);
-      const earnedXp = catCompleted.reduce((sum, c) => sum + (progress.scores[c.id] || c.points), 0);
-      const percentage = catChallenges.length > 0 ? Math.round((catCompleted.length / catChallenges.length) * 100) : 0;
-
-      return {
-        category: cat,
-        total: catChallenges.length,
-        completed: catCompleted.length,
-        percentage,
-        earnedXp,
-        totalXp,
-      };
-    });
-
-    return {
-      totalLabs,
-      totalChallenges,
-      completedChallenges,
-      totalScore,
-      maxScore,
-      progressPercentage,
-      categoryStats,
-    };
-  }, [progress.completedChallenges, progress.scores]);
 
   const currentLab = useMemo(() => {
     return LABS.find((l) => l.id === progress.currentLabId) || LABS[0];

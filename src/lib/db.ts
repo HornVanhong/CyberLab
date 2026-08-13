@@ -1,250 +1,197 @@
-import fs from "fs";
-import path from "path";
-import crypto from "crypto";
+import { Pool } from "pg";
 
-export interface UserRecord {
-  id: string;
-  username: string;
-  email: string;
-  passwordHash: string;
-  role: "student" | "admin";
-  xp: number;
-  level: number;
-  title: string;
-  createdAt: string;
-}
+// Render PostgreSQL requires SSL connection in production/external connection
+const connectionString = process.env.DATABASE_URL;
 
-export interface ProgressRecord {
-  id: string;
-  userId: string;
-  labId: string;
-  challengeId: string;
-  solved: boolean;
-  flagSubmitted: string;
-  solvedAt: string;
-  hintsUnlocked: boolean;
-}
+export const pool = new Pool({
+  connectionString,
+  ssl: connectionString?.includes("localhost") || connectionString?.includes("127.0.0.1")
+    ? false
+    : { rejectUnauthorized: false },
+});
 
-export interface SubmissionLog {
-  id: string;
-  userId: string;
-  labId: string;
-  challengeId: string;
-  flagSubmitted: string;
-  isCorrect: boolean;
-  submittedAt: string;
-}
+/**
+ * Initialize all database tables for CyberLab
+ */
+export async function initDatabase() {
+  if (!connectionString) {
+    console.warn("⚠️ DATABASE_URL environment variable is not defined. Skipping PostgreSQL init.");
+    return { success: false, error: "DATABASE_URL is missing" };
+  }
 
-export interface CertificateRecord {
-  certificateId: string;
-  userId: string;
-  candidateName: string;
-  score: number;
-  tasksCompleted: number;
-  totalTasks: number;
-  issuedAt: string;
-}
-
-interface DatabaseSchema {
-  users: UserRecord[];
-  progress: ProgressRecord[];
-  submissions: SubmissionLog[];
-  certificates: CertificateRecord[];
-}
-
-const DB_DIR = path.join(process.cwd(), "data");
-const DB_FILE = path.join(DB_DIR, "cyberlab_db.json");
-
-// Helper to Hash Passwords
-export function hashPassword(password: string): string {
-  return crypto.createHash("sha256").update(password + "cyberlab_salt_2026").digest("hex");
-}
-
-// Ensure DB File Exists
-function getDb(): DatabaseSchema {
+  const client = await pool.connect();
   try {
-    if (!fs.existsSync(DB_DIR)) {
-      fs.mkdirSync(DB_DIR, { recursive: true });
-    }
-    if (!fs.existsSync(DB_FILE)) {
-      const initialDb: DatabaseSchema = {
-        users: [
-          {
-            id: "user-admin-01",
-            username: "admin",
-            email: "admin@cyberlab.local",
-            passwordHash: hashPassword("admin123"),
-            role: "admin",
-            xp: 1250,
-            level: 5,
-            title: "Cyber Master",
-            createdAt: new Date().toISOString(),
-          },
-          {
-            id: "user-student-01",
-            username: "student",
-            email: "student@cyberlab.local",
-            passwordHash: hashPassword("student123"),
-            role: "student",
-            xp: 450,
-            level: 2,
-            title: "Security Trainee",
-            createdAt: new Date().toISOString(),
-          },
-        ],
-        progress: [],
-        submissions: [],
-        certificates: [],
-      };
-      fs.writeFileSync(DB_FILE, JSON.stringify(initialDb, null, 2), "utf-8");
-      return initialDb;
-    }
+    await client.query("BEGIN");
 
-    const data = fs.readFileSync(DB_FILE, "utf-8");
-    return JSON.parse(data) as DatabaseSchema;
-  } catch (err) {
-    console.error("Database access error:", err);
-    return { users: [], progress: [], submissions: [], certificates: [] };
+    // 1. Users Table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        id VARCHAR(255) PRIMARY KEY,
+        email VARCHAR(255) UNIQUE NOT NULL,
+        display_name VARCHAR(255),
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    // 2. User Progress Table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS user_progress (
+        user_id VARCHAR(255) PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+        current_lab_id VARCHAR(100) DEFAULT 'metasploitable-2',
+        completed_challenges JSONB DEFAULT '[]'::jsonb,
+        revealed_hints JSONB DEFAULT '{}'::jsonb,
+        scores JSONB DEFAULT '{}'::jsonb,
+        attempts JSONB DEFAULT '{}'::jsonb,
+        target_ips JSONB DEFAULT '{}'::jsonb,
+        settings JSONB DEFAULT '{}'::jsonb,
+        last_challenge VARCHAR(100),
+        total_score INT DEFAULT 0,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    // 3. Challenge Submission Logs Table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS challenge_logs (
+        id SERIAL PRIMARY KEY,
+        user_id VARCHAR(255) REFERENCES users(id) ON DELETE CASCADE,
+        challenge_id VARCHAR(100) NOT NULL,
+        submitted_flag TEXT NOT NULL,
+        is_correct BOOLEAN NOT NULL,
+        points_earned INT DEFAULT 0,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    // 4. Exam & Quiz Progress Table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS quiz_results (
+        id SERIAL PRIMARY KEY,
+        user_id VARCHAR(255) REFERENCES users(id) ON DELETE CASCADE,
+        quiz_type VARCHAR(50) NOT NULL,
+        score INT NOT NULL,
+        max_score INT NOT NULL,
+        passed BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    await client.query("COMMIT");
+    console.log("✅ Render PostgreSQL Database Schema initialized successfully.");
+    return { success: true, message: "Database schema initialized" };
+  } catch (error: any) {
+    await client.query("ROLLBACK");
+    console.error("❌ Database schema initialization error:", error);
+    return { success: false, error: error?.message || "Failed to initialize database" };
+  } finally {
+    client.release();
   }
 }
 
-function saveDb(db: DatabaseSchema): void {
-  try {
-    if (!fs.existsSync(DB_DIR)) {
-      fs.mkdirSync(DB_DIR, { recursive: true });
-    }
-    fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2), "utf-8");
-  } catch (err) {
-    console.error("Failed to save database:", err);
-  }
+/**
+ * Execute custom SQL query with params
+ */
+export async function query(text: string, params?: any[]) {
+  const start = Date.now();
+  const res = await pool.query(text, params);
+  const duration = Date.now() - start;
+  return res;
 }
 
-// User Queries
-export function getUserByEmail(email: string): UserRecord | undefined {
-  const db = getDb();
-  return db.users.find((u) => u.email.toLowerCase() === email.toLowerCase());
+/**
+ * Save user profile to database
+ */
+export async function upsertUser(id: string, email: string, displayName?: string) {
+  const text = `
+    INSERT INTO users (id, email, display_name, updated_at)
+    VALUES ($1, $2, $3, CURRENT_TIMESTAMP)
+    ON CONFLICT (id) DO UPDATE
+    SET email = EXCLUDED.email,
+        display_name = COALESCE(EXCLUDED.display_name, users.display_name),
+        updated_at = CURRENT_TIMESTAMP
+    RETURNING *;
+  `;
+  const res = await pool.query(text, [id, email, displayName || email.split("@")[0]]);
+  return res.rows[0];
 }
 
-export function getUserById(id: string): UserRecord | undefined {
-  const db = getDb();
-  return db.users.find((u) => u.id === id);
+/**
+ * Get user progress from database
+ */
+export async function getUserProgress(userId: string) {
+  const text = `SELECT * FROM user_progress WHERE user_id = $1;`;
+  const res = await pool.query(text, [userId]);
+  return res.rows[0] || null;
 }
 
-export function createUser(username: string, email: string, passwordPlain: string): UserRecord {
-  const db = getDb();
-  const newUser: UserRecord = {
-    id: `user-${crypto.randomBytes(6).toString("hex")}`,
-    username,
-    email,
-    passwordHash: hashPassword(passwordPlain),
-    role: "student",
-    xp: 0,
-    level: 1,
-    title: "Novice Hacker",
-    createdAt: new Date().toISOString(),
-  };
-  db.users.push(newUser);
-  saveDb(db);
-  return newUser;
-}
-
-export function updateUserXp(userId: string, addedXp: number): UserRecord | undefined {
-  const db = getDb();
-  const user = db.users.find((u) => u.id === userId);
-  if (!user) return undefined;
-
-  user.xp += addedXp;
-  user.level = Math.floor(user.xp / 250) + 1;
-
-  if (user.level >= 10) user.title = "Legendary Pentester";
-  else if (user.level >= 5) user.title = "Cyber Specialist";
-  else if (user.level >= 3) user.title = "Security Analyst";
-  else user.title = "Security Trainee";
-
-  saveDb(db);
-  return user;
-}
-
-// Progress & Flag Submissions
-export function recordSubmission(
+/**
+ * Save / sync user progress to database
+ */
+export async function saveUserProgress(
   userId: string,
-  labId: string,
+  progressData: {
+    currentLabId?: string;
+    completedChallenges?: string[];
+    revealedHints?: Record<string, number[]>;
+    scores?: Record<string, number>;
+    attempts?: Record<string, number>;
+    targetIps?: Record<string, string>;
+    settings?: any;
+    lastChallenge?: string;
+    totalScore?: number;
+  }
+) {
+  const text = `
+    INSERT INTO user_progress (
+      user_id, current_lab_id, completed_challenges, revealed_hints, scores, attempts, target_ips, settings, last_challenge, total_score, updated_at
+    )
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, CURRENT_TIMESTAMP)
+    ON CONFLICT (user_id) DO UPDATE
+    SET current_lab_id = COALESCE(EXCLUDED.current_lab_id, user_progress.current_lab_id),
+        completed_challenges = COALESCE(EXCLUDED.completed_challenges, user_progress.completed_challenges),
+        revealed_hints = COALESCE(EXCLUDED.revealed_hints, user_progress.revealed_hints),
+        scores = COALESCE(EXCLUDED.scores, user_progress.scores),
+        attempts = COALESCE(EXCLUDED.attempts, user_progress.attempts),
+        target_ips = COALESCE(EXCLUDED.target_ips, user_progress.target_ips),
+        settings = COALESCE(EXCLUDED.settings, user_progress.settings),
+        last_challenge = COALESCE(EXCLUDED.last_challenge, user_progress.last_challenge),
+        total_score = COALESCE(EXCLUDED.total_score, user_progress.total_score),
+        updated_at = CURRENT_TIMESTAMP
+    RETURNING *;
+  `;
+
+  const res = await pool.query(text, [
+    userId,
+    progressData.currentLabId || "metasploitable-2",
+    JSON.stringify(progressData.completedChallenges || []),
+    JSON.stringify(progressData.revealedHints || {}),
+    JSON.stringify(progressData.scores || {}),
+    JSON.stringify(progressData.attempts || {}),
+    JSON.stringify(progressData.targetIps || {}),
+    JSON.stringify(progressData.settings || {}),
+    progressData.lastChallenge || null,
+    progressData.totalScore || 0,
+  ]);
+
+  return res.rows[0];
+}
+
+/**
+ * Log a challenge flag attempt to database
+ */
+export async function logChallengeAttempt(
+  userId: string,
   challengeId: string,
-  flagSubmitted: string,
-  isCorrect: boolean
-): { progress?: ProgressRecord; submission: SubmissionLog } {
-  const db = getDb();
-
-  const submission: SubmissionLog = {
-    id: `sub-${crypto.randomBytes(6).toString("hex")}`,
-    userId,
-    labId,
-    challengeId,
-    flagSubmitted,
-    isCorrect,
-    submittedAt: new Date().toISOString(),
-  };
-  db.submissions.push(submission);
-
-  let progress: ProgressRecord | undefined;
-
-  if (isCorrect) {
-    let existingProgress = db.progress.find(
-      (p) => p.userId === userId && p.challengeId === challengeId
-    );
-    if (!existingProgress) {
-      existingProgress = {
-        id: `prog-${crypto.randomBytes(6).toString("hex")}`,
-        userId,
-        labId,
-        challengeId,
-        solved: true,
-        flagSubmitted,
-        solvedAt: new Date().toISOString(),
-        hintsUnlocked: false,
-      };
-      db.progress.push(existingProgress);
-    } else {
-      existingProgress.solved = true;
-      existingProgress.flagSubmitted = flagSubmitted;
-      existingProgress.solvedAt = new Date().toISOString();
-    }
-    progress = existingProgress;
-  }
-
-  saveDb(db);
-  return { progress, submission };
-}
-
-export function getUserProgress(userId: string): ProgressRecord[] {
-  const db = getDb();
-  return db.progress.filter((p) => p.userId === userId);
-}
-
-// Certificates
-export function saveCertificate(
-  userId: string,
-  candidateName: string,
-  score: number,
-  tasksCompleted: number,
-  totalTasks: number
-): CertificateRecord {
-  const db = getDb();
-  const cert: CertificateRecord = {
-    certificateId: `CYBERLAB-${crypto.randomBytes(4).toString("hex").toUpperCase()}-2026`,
-    userId,
-    candidateName,
-    score,
-    tasksCompleted,
-    totalTasks,
-    issuedAt: new Date().toISOString(),
-  };
-  db.certificates.push(cert);
-  saveDb(db);
-  return cert;
-}
-
-export function getCertificateById(certificateId: string): CertificateRecord | undefined {
-  const db = getDb();
-  return db.certificates.find((c) => c.certificateId.toUpperCase() === certificateId.toUpperCase());
+  submittedFlag: string,
+  isCorrect: boolean,
+  pointsEarned: number
+) {
+  const text = `
+    INSERT INTO challenge_logs (user_id, challenge_id, submitted_flag, is_correct, points_earned)
+    VALUES ($1, $2, $3, $4, $5)
+    RETURNING *;
+  `;
+  const res = await pool.query(text, [userId, challengeId, submittedFlag, isCorrect, pointsEarned]);
+  return res.rows[0];
 }
