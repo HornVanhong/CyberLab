@@ -26,6 +26,13 @@ export function LandingNavbar({ onOpenAuth }: LandingNavbarProps) {
   const { user, logout } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  const handleProtectedNav = (e: React.MouseEvent, href: string) => {
+    if (!user) {
+      e.preventDefault();
+      onOpenAuth("login");
+    }
+  };
+
   return (
     <header className="sticky top-0 z-40 w-full border-b border-slate-800/80 bg-slate-950/90 backdrop-blur-xl">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
@@ -50,19 +57,38 @@ export function LandingNavbar({ onOpenAuth }: LandingNavbarProps) {
 
         {/* Center: Desktop Navigation Links */}
         <nav className="hidden md:flex items-center gap-6 font-mono text-xs text-slate-300">
-          <Link href="/labs" className="hover:text-emerald-400 transition-colors flex items-center gap-1.5">
+          <Link
+            href="/labs"
+            onClick={(e) => handleProtectedNav(e, "/labs")}
+            className="hover:text-emerald-400 transition-colors flex items-center gap-1.5"
+          >
             <Layers className="w-3.5 h-3.5 text-emerald-400" />
             <span>Practice Labs</span>
           </Link>
-          <Link href="/tools" className="hover:text-cyan-400 transition-colors flex items-center gap-1.5">
+
+          <Link
+            href="/tools"
+            onClick={(e) => handleProtectedNav(e, "/tools")}
+            className="hover:text-cyan-400 transition-colors flex items-center gap-1.5"
+          >
             <Wrench className="w-3.5 h-3.5 text-cyan-400" />
             <span>Tool Academy</span>
           </Link>
-          <Link href="/osint-resources" className="hover:text-cyan-400 transition-colors flex items-center gap-1.5">
+
+          <Link
+            href="/osint-resources"
+            onClick={(e) => handleProtectedNav(e, "/osint-resources")}
+            className="hover:text-cyan-400 transition-colors flex items-center gap-1.5"
+          >
             <Globe className="w-3.5 h-3.5 text-cyan-400" />
             <span>OSINT Directory</span>
           </Link>
-          <Link href="/exam" className="hover:text-amber-400 transition-colors flex items-center gap-1.5">
+
+          <Link
+            href="/exam"
+            onClick={(e) => handleProtectedNav(e, "/exam")}
+            className="hover:text-amber-400 transition-colors flex items-center gap-1.5"
+          >
             <Award className="w-3.5 h-3.5 text-amber-400" />
             <span>Exam</span>
           </Link>
@@ -134,7 +160,10 @@ export function LandingNavbar({ onOpenAuth }: LandingNavbarProps) {
         <div className="md:hidden border-t border-slate-800 bg-slate-950 p-4 space-y-3 font-mono text-xs animate-fadeIn">
           <Link
             href="/labs"
-            onClick={() => setMobileMenuOpen(false)}
+            onClick={(e) => {
+              setMobileMenuOpen(false);
+              handleProtectedNav(e, "/labs");
+            }}
             className="flex items-center gap-2 p-2.5 rounded-lg text-slate-300 hover:bg-slate-900"
           >
             <Layers className="w-4 h-4 text-emerald-400" />
@@ -142,7 +171,10 @@ export function LandingNavbar({ onOpenAuth }: LandingNavbarProps) {
           </Link>
           <Link
             href="/tools"
-            onClick={() => setMobileMenuOpen(false)}
+            onClick={(e) => {
+              setMobileMenuOpen(false);
+              handleProtectedNav(e, "/tools");
+            }}
             className="flex items-center gap-2 p-2.5 rounded-lg text-slate-300 hover:bg-slate-900"
           >
             <Wrench className="w-4 h-4 text-cyan-400" />
@@ -150,7 +182,10 @@ export function LandingNavbar({ onOpenAuth }: LandingNavbarProps) {
           </Link>
           <Link
             href="/osint-resources"
-            onClick={() => setMobileMenuOpen(false)}
+            onClick={(e) => {
+              setMobileMenuOpen(false);
+              handleProtectedNav(e, "/osint-resources");
+            }}
             className="flex items-center gap-2 p-2.5 rounded-lg text-slate-300 hover:bg-slate-900"
           >
             <Globe className="w-4 h-4 text-cyan-400" />
@@ -158,7 +193,10 @@ export function LandingNavbar({ onOpenAuth }: LandingNavbarProps) {
           </Link>
           <Link
             href="/exam"
-            onClick={() => setMobileMenuOpen(false)}
+            onClick={(e) => {
+              setMobileMenuOpen(false);
+              handleProtectedNav(e, "/exam");
+            }}
             className="flex items-center gap-2 p-2.5 rounded-lg text-slate-300 hover:bg-slate-900"
           >
             <Award className="w-4 h-4 text-amber-400" />

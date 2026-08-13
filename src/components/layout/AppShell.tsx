@@ -1,17 +1,19 @@
 "use client";
 
-import React, { useState } from "react";
-import { usePathname } from "next/navigation";
+import React, { useState, useEffect } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { Sidebar } from "./Sidebar";
 import { Navbar } from "./Navbar";
 import { LandingNavbar } from "./LandingNavbar";
 import { AuthModal } from "@/components/auth/AuthModal";
-import { AuthGuard } from "@/components/auth/AuthGuard";
 import { CyberLabProvider } from "@/context/CyberLabContext";
-import { AuthProvider } from "@/context/AuthContext";
+import { AuthProvider, useAuth } from "@/context/AuthContext";
+import { Shield } from "lucide-react";
 
 function AppShellContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { user, loading } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Auth modal state for landing page
@@ -23,10 +25,21 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
     setAuthModalOpen(true);
   };
 
-  // Check if current route is a standalone landing or standalone auth page
+  // Check if current route is a public standalone page
   const isLandingPage = pathname === "/";
   const isAuthPage = pathname === "/login" || pathname === "/register";
 
+  // Redirect unauthenticated users away from protected routes BEFORE rendering Sidebar/Navbar
+  useEffect(() => {
+    if (!loading && !user && !isLandingPage && !isAuthPage) {
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem("redirectAfterLogin", pathname);
+      }
+      router.replace("/login");
+    }
+  }, [user, loading, isLandingPage, isAuthPage, pathname, router]);
+
+  // 1. PUBLIC LANDING PAGE (Full Width, No App Sidebar)
   if (isLandingPage) {
     return (
       <div className="relative min-h-screen flex flex-col bg-slate-950 text-slate-100 cyber-grid">
@@ -44,7 +57,7 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
           initialTab={authModalTab}
         />
 
-        {/* Main Landing Content (Full Width, No Sidebar Offset) */}
+        {/* Main Landing Content */}
         <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
           {children}
         </main>
@@ -59,6 +72,7 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
     );
   }
 
+  // 2. PUBLIC STANDALONE AUTH PAGES (/login, /register)
   if (isAuthPage) {
     return (
       <div className="relative min-h-screen flex flex-col justify-center bg-slate-950 text-slate-100 cyber-grid p-4">
@@ -71,7 +85,25 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // Inner Practice App Dashboard Shell (Protected by AuthGuard)
+  // 3. PROTECTED LAB ROUTES: If loading auth status, show minimal loader
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-950 font-mono text-xs text-slate-400">
+        <div className="relative mb-3">
+          <div className="w-10 h-10 rounded-full border-2 border-emerald-500/20 border-t-emerald-400 animate-spin" />
+          <Shield className="w-4 h-4 text-emerald-400 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+        </div>
+        <p className="animate-pulse">Verifying Operator Credentials...</p>
+      </div>
+    );
+  }
+
+  // 4. PROTECTED LAB ROUTES: If NOT signed in, DO NOT render Sidebar or Navbar!
+  if (!user) {
+    return null;
+  }
+
+  // 5. PROTECTED LAB ROUTES: Authenticated Operator Dashboard Shell (With Sidebar & Navbar)
   return (
     <div className="relative min-h-screen flex bg-slate-950 text-slate-100 cyber-grid">
       {/* Background ambient glow circles */}
@@ -83,7 +115,7 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
       <div className="flex-1 flex flex-col min-w-0 lg:pl-64">
         <Navbar onMenuClick={() => setSidebarOpen(true)} />
         <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
-          <AuthGuard>{children}</AuthGuard>
+          {children}
         </main>
 
         {/* Educational Disclaimer Footer */}
