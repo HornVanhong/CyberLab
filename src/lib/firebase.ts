@@ -10,14 +10,15 @@ import {
   User as FirebaseUser,
 } from "firebase/auth";
 
-// Default Demo Firebase Configuration (Override via .env.local)
+// Your official Firebase App Configuration
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "AIzaSyDemoKeyCyberLab2026Secure",
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "cyberlab-app.firebaseapp.com",
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "cyberlab-app",
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || "cyberlab-app.appspot.com",
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "109876543210",
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "1:109876543210:web:abc123cyberlab",
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "AIzaSyDZKZN6zBbIhCWJ8DN2WJ1RloEGFAtFUMU",
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "cyberlap-7e5d3.firebaseapp.com",
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "cyberlap-7e5d3",
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || "cyberlap-7e5d3.firebasestorage.app",
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "882129241031",
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "1:882129241031:web:88f1345012ab04f99e8fe2",
+  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID || "G-N1YD75E1YP",
 };
 
 // Initialize Firebase App singleton
