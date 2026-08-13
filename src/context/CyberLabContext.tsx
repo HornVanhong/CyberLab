@@ -71,8 +71,9 @@ export function CyberLabProvider({ children }: { children: React.ReactNode }) {
   const [progress, setProgress] = useState<ProgressState>(INITIAL_PROGRESS_STATE);
   const [isLoaded, setIsLoaded] = useState<boolean>(false);
 
-  // 1. Load from localStorage on client mount
+  // 1. Load from localStorage on client mount & trigger DB init
   useEffect(() => {
+    fetch("/api/db/init").catch(() => {});
     const loaded = loadProgressFromStorage();
     setProgress(loaded);
     setIsLoaded(true);
