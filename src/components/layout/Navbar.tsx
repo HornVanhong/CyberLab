@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Menu,
   Volume2,
@@ -11,6 +11,10 @@ import {
   Check,
   Shield,
   HelpCircle,
+  User,
+  LogIn,
+  LogOut,
+  Key,
 } from "lucide-react";
 import { useCyberLab } from "@/context/CyberLabContext";
 import { Modal } from "@/components/ui/Modal";
@@ -21,6 +25,75 @@ export function Navbar({ onMenuClick }: { onMenuClick: () => void }) {
 
   const [isEditIpOpen, setIsEditIpOpen] = useState(false);
   const [ipInput, setIpInput] = useState(currentIp);
+
+  // Auth State
+  const [authUser, setAuthUser] = useState<{ username: string; email: string; role: string; xp: number } | null>(null);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isRegisterMode, setIsRegisterMode] = useState(false);
+  const [emailInput, setEmailInput] = useState("student@cyberlab.local");
+  const [passwordInput, setPasswordInput] = useState("student123");
+  const [usernameInput, setUsernameInput] = useState("student");
+  const [authError, setAuthError] = useState("");
+  const [isAuthLoading, setIsAuthLoading] = useState(false);
+
+  // Check authenticated session on load
+  const checkAuth = async () => {
+    try {
+      const res = await fetch("/api/auth/me");
+      const data = await res.json();
+      if (data.authenticated && data.user) {
+        setAuthUser(data.user);
+      } else {
+        setAuthUser(null);
+      }
+    } catch {
+      setAuthUser(null);
+    }
+  };
+
+  useEffect(() => {
+    checkAuth();
+  }, []);
+
+  const handleAuthSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthError("");
+    setIsAuthLoading(true);
+
+    const endpoint = isRegisterMode ? "/api/auth/register" : "/api/auth/login";
+    const payload = isRegisterMode
+      ? { username: usernameInput, email: emailInput, password: passwordInput }
+      : { email: emailInput, password: passwordInput };
+
+    try {
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        setAuthError(data.error || "Authentication failed");
+      } else {
+        setAuthUser(data.user);
+        setIsAuthModalOpen(false);
+      }
+    } catch {
+      setAuthError("Network connection error");
+    } finally {
+      setIsAuthLoading(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+      setAuthUser(null);
+    } catch {
+      // logout fallback
+    }
+  };
 
   const handleSaveIp = (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,9 +127,9 @@ export function Navbar({ onMenuClick }: { onMenuClick: () => void }) {
           </div>
         </div>
 
-        {/* Right Section: Target IP, XP Pill, Sound Toggle */}
+        {/* Right Section: Target IP, Auth, XP Pill, Sound Toggle */}
         <div className="flex items-center gap-2.5 sm:gap-4">
-          {/* Target IP Pill (Click to edit) */}
+          {/* Target IP Pill */}
           <button
             onClick={() => {
               setIpInput(currentIp);
@@ -74,6 +147,34 @@ export function Navbar({ onMenuClick }: { onMenuClick: () => void }) {
             <Edit2 className="w-3 h-3 text-slate-400 group-hover:text-cyan-400" />
           </button>
 
+          {/* User Auth Profile Button */}
+          {authUser ? (
+            <div className="flex items-center gap-2">
+              <div className="px-3 py-1.5 rounded-lg bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 font-mono text-xs flex items-center gap-1.5">
+                <User className="w-3.5 h-3.5 text-cyan-400" />
+                <span className="font-bold">{authUser.username}</span>
+                <span className="text-[10px] bg-cyan-950 px-1 py-0.2 rounded text-cyan-400 uppercase">{authUser.role}</span>
+              </div>
+              <button
+                onClick={handleLogout}
+                type="button"
+                className="p-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-400 hover:text-rose-400 hover:border-rose-500/30 transition-all cursor-pointer"
+                title="Logout"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setIsAuthModalOpen(true)}
+              type="button"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-emerald-500/40 text-xs font-mono text-emerald-400 transition-all cursor-pointer font-bold"
+            >
+              <LogIn className="w-3.5 h-3.5" />
+              <span>Log In</span>
+            </button>
+          )}
+
           {/* Total Score Badge */}
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-mono text-xs font-bold shadow-[0_0_12px_rgba(16,185,129,0.2)]">
             <Sparkles className="w-3.5 h-3.5" />
@@ -84,7 +185,7 @@ export function Navbar({ onMenuClick }: { onMenuClick: () => void }) {
           <button
             onClick={toggleSound}
             type="button"
-            className="p-2 text-slate-400 hover:text-slate-200 rounded-lg hover:bg-slate-900 border border-transparent hover:border-slate-800 transition-colors"
+            className="p-2 text-slate-400 hover:text-slate-200 rounded-lg hover:bg-slate-900 border border-transparent hover:border-slate-800 transition-colors cursor-pointer"
             title={progress.settings.soundEffects ? "Mute audio effects" : "Enable audio effects"}
           >
             {progress.settings.soundEffects ? (
@@ -95,6 +196,83 @@ export function Navbar({ onMenuClick }: { onMenuClick: () => void }) {
           </button>
         </div>
       </header>
+
+      {/* Auth Modal */}
+      <Modal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        title={isRegisterMode ? "Create CyberLab Account" : "User Authentication Login"}
+        description={isRegisterMode ? "Register a new full-stack profile" : "Log into your account to sync XP and certificates"}
+      >
+        <form onSubmit={handleAuthSubmit} className="space-y-4">
+          {authError && (
+            <div className="p-3 rounded-lg bg-rose-950/40 border border-rose-500/40 text-rose-300 text-xs font-mono">
+              ⚠️ {authError}
+            </div>
+          )}
+
+          {isRegisterMode && (
+            <div>
+              <label className="block text-xs font-mono text-slate-400 mb-1">USERNAME</label>
+              <input
+                type="text"
+                value={usernameInput}
+                onChange={(e) => setUsernameInput(e.target.value)}
+                required
+                className="w-full px-3.5 py-2.5 rounded-lg bg-slate-950 border border-slate-700 text-white font-mono text-xs"
+              />
+            </div>
+          )}
+
+          <div>
+            <label className="block text-xs font-mono text-slate-400 mb-1">EMAIL ADDRESS</label>
+            <input
+              type="email"
+              value={emailInput}
+              onChange={(e) => setEmailInput(e.target.value)}
+              required
+              className="w-full px-3.5 py-2.5 rounded-lg bg-slate-950 border border-slate-700 text-white font-mono text-xs"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-mono text-slate-400 mb-1">PASSWORD</label>
+            <input
+              type="password"
+              value={passwordInput}
+              onChange={(e) => setPasswordInput(e.target.value)}
+              required
+              className="w-full px-3.5 py-2.5 rounded-lg bg-slate-950 border border-slate-700 text-white font-mono text-xs"
+            />
+          </div>
+
+          {!isRegisterMode && (
+            <div className="p-3 rounded-lg bg-slate-950 border border-slate-800 text-[11px] font-mono text-slate-400 space-y-1">
+              <span className="font-bold text-cyan-400 block">Default Accounts:</span>
+              <p>Student: <code className="text-emerald-400">student@cyberlab.local / student123</code></p>
+              <p>Admin: <code className="text-amber-400">admin@cyberlab.local / admin123</code></p>
+            </div>
+          )}
+
+          <div className="flex items-center justify-between pt-2">
+            <button
+              type="button"
+              onClick={() => setIsRegisterMode(!isRegisterMode)}
+              className="text-xs font-mono text-cyan-400 hover:underline cursor-pointer"
+            >
+              {isRegisterMode ? "Already have an account? Log in" : "Need an account? Register here"}
+            </button>
+
+            <button
+              type="submit"
+              disabled={isAuthLoading}
+              className="px-5 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-mono text-xs font-bold transition-all cursor-pointer"
+            >
+              {isAuthLoading ? "Processing..." : isRegisterMode ? "Register Account" : "Log In"}
+            </button>
+          </div>
+        </form>
+      </Modal>
 
       {/* Target IP Edit Modal */}
       <Modal
@@ -125,15 +303,14 @@ export function Navbar({ onMenuClick }: { onMenuClick: () => void }) {
             <button
               type="button"
               onClick={() => setIsEditIpOpen(false)}
-              className="px-4 py-2 text-xs font-medium text-slate-400 hover:text-slate-200 bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors"
+              className="px-4 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 font-mono text-xs transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-slate-950 bg-emerald-400 hover:bg-emerald-300 rounded-lg transition-colors shadow-[0_0_15px_rgba(16,185,129,0.3)]"
+              className="px-4 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-mono text-xs font-bold transition-colors"
             >
-              <Check className="w-4 h-4" />
               Save Target IP
             </button>
           </div>
