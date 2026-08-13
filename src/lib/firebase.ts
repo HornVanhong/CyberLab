@@ -35,6 +35,17 @@ function formatFirebaseError(error: any): string {
   const msg = String(error?.message || "");
 
   if (
+    code === "auth/account-exists-with-different-credential" ||
+    msg.includes("account-exists-with-different-credential")
+  ) {
+    return "This email is registered with Google 1-Click. Please click 'Continue with Google' to sign in.";
+  }
+
+  if (code === "auth/email-already-in-use" || msg.includes("email-already-in-use")) {
+    return "An account with this email already exists. Please sign in with your email or use Google 1-Click.";
+  }
+
+  if (
     code === "auth/invalid-credential" ||
     code === "auth/user-not-found" ||
     code === "auth/wrong-password" ||
@@ -43,10 +54,6 @@ function formatFirebaseError(error: any): string {
     msg.includes("wrong-password")
   ) {
     return "Invalid email address or password. Please check your credentials and try again.";
-  }
-
-  if (code === "auth/email-already-in-use" || msg.includes("email-already-in-use")) {
-    return "An account with this email address already exists. Please sign in instead.";
   }
 
   if (code === "auth/weak-password" || msg.includes("weak-password")) {
@@ -91,7 +98,7 @@ export async function loginWithEmail(email: string, pass: string) {
   }
 }
 
-// 3. Email & Password Registration
+// 3. Email & Password Registration (With Smart Login Link Handler)
 export async function registerWithEmail(email: string, pass: string) {
   const cleanEmail = email.trim().toLowerCase();
   try {
@@ -99,6 +106,23 @@ export async function registerWithEmail(email: string, pass: string) {
     return { user: result.user, error: null };
   } catch (error: any) {
     console.error("Firebase Registration Error:", error);
+
+    // If account already exists with password, attempt automatic sign-in
+    if (error?.code === "auth/email-already-in-use") {
+      try {
+        const loginResult = await signInWithEmailAndPassword(auth, cleanEmail, pass);
+        return { user: loginResult.user, error: null };
+      } catch (loginError: any) {
+        // If login failed because account was created via Google
+        if (loginError?.code === "auth/invalid-credential" || loginError?.code === "auth/wrong-password") {
+          return {
+            user: null,
+            error: "An account with this email is registered via Google 1-Click. Please click 'Continue with Google' to sign in.",
+          };
+        }
+      }
+    }
+
     return { user: null, error: formatFirebaseError(error) };
   }
 }
