@@ -14,6 +14,7 @@ import {
   CheckCircle2,
   AlertCircle,
   Sparkles,
+  LogIn,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
@@ -133,9 +134,20 @@ export default function RegisterPage() {
           </div>
 
           {errorMsg && (
-            <div className="p-3.5 rounded-xl bg-rose-950/40 border border-rose-500/40 text-rose-300 text-xs font-mono flex items-center gap-2 animate-fadeIn">
-              <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
-              <span>{errorMsg}</span>
+            <div className="p-3.5 rounded-xl bg-rose-950/40 border border-rose-500/40 text-rose-300 text-xs font-mono flex flex-col gap-2 animate-fadeIn">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                <span>{errorMsg}</span>
+              </div>
+              {errorMsg.includes("already exists") && (
+                <Link
+                  href="/login"
+                  className="self-start text-[11px] font-bold text-emerald-400 hover:underline flex items-center gap-1 pt-1"
+                >
+                  <LogIn className="w-3.5 h-3.5" />
+                  <span>Click here to Sign In instead →</span>
+                </Link>
+              )}
             </div>
           )}
 

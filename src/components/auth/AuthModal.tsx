@@ -179,11 +179,39 @@ export function AuthModal({ isOpen, onClose, initialTab = "login" }: AuthModalPr
           </button>
         </div>
 
-        {/* Error Alert */}
+        {/* Error Alert with Smart Switcher Link */}
         {errorMsg && (
-          <div className="mb-4 p-3 rounded-xl bg-rose-950/40 border border-rose-500/40 text-rose-300 text-xs font-mono flex items-center gap-2 animate-fadeIn">
-            <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
-            <span>{errorMsg}</span>
+          <div className="mb-4 p-3.5 rounded-xl bg-rose-950/40 border border-rose-500/40 text-rose-300 text-xs font-mono flex flex-col gap-2 animate-fadeIn">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+              <span>{errorMsg}</span>
+            </div>
+            {errorMsg.includes("already exists") && activeTab === "register" && (
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTab("login");
+                  setErrorMsg("");
+                }}
+                className="self-start text-[11px] font-bold text-emerald-400 hover:underline flex items-center gap-1 cursor-pointer pt-1"
+              >
+                <LogIn className="w-3.5 h-3.5" />
+                <span>Switch to Sign In tab →</span>
+              </button>
+            )}
+            {errorMsg.includes("No account found") && activeTab === "login" && (
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTab("register");
+                  setErrorMsg("");
+                }}
+                className="self-start text-[11px] font-bold text-cyan-400 hover:underline flex items-center gap-1 cursor-pointer pt-1"
+              >
+                <UserPlus className="w-3.5 h-3.5" />
+                <span>Switch to Sign Up tab →</span>
+              </button>
+            )}
           </div>
         )}
 

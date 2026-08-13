@@ -39,11 +39,11 @@ function formatFirebaseError(error: any): string {
     code === "auth/account-exists-with-different-credential" ||
     msg.includes("account-exists-with-different-credential")
   ) {
-    return "An account with this email already exists under a different sign-in method. Please sign in with your email or Google.";
+    return "An account with this email address already exists. Please sign in with your password or use Google 1-Click.";
   }
 
   if (code === "auth/email-already-in-use" || msg.includes("email-already-in-use")) {
-    return "An account with this email already exists. Please sign in instead.";
+    return "An account with this email address already exists. Please sign in instead.";
   }
 
   if (
@@ -54,7 +54,7 @@ function formatFirebaseError(error: any): string {
     msg.includes("user-not-found") ||
     msg.includes("wrong-password")
   ) {
-    return "No account exists for this email, or incorrect password. Please click 'Register Here' below to create a free account.";
+    return "No account found with this email address, or incorrect password. Please register below or click 'Continue with Google'.";
   }
 
   if (code === "auth/weak-password" || msg.includes("weak-password")) {
@@ -73,10 +73,10 @@ function formatFirebaseError(error: any): string {
     return "Network error. Please check your internet connection.";
   }
 
-  return "No account found with this email address. Please click 'Register Here' below to create a free account.";
+  return "Authentication error. Please check your details and try again.";
 }
 
-// 1. Google 1-Click Sign-In
+// 1. Google 1-Click Sign-In & Registration
 export async function signInWithGoogle() {
   try {
     const result = await signInWithPopup(auth, googleProvider);
@@ -92,7 +92,7 @@ export async function signInWithGoogle() {
     ) {
       return {
         user: null,
-        error: "An account with this email was created using Email & Password. Please sign in using your Email and Password below.",
+        error: "An account with this email address already exists via password. Please sign in using your Email & Password below.",
       };
     }
 
@@ -100,7 +100,7 @@ export async function signInWithGoogle() {
   }
 }
 
-// 2. Email & Password Sign-In (With Smart Provider & Missing Account Inspection)
+// 2. Email & Password Sign-In (With Smart Missing Account Detection)
 export async function loginWithEmail(email: string, pass: string) {
   const cleanEmail = email.trim().toLowerCase();
   try {
@@ -116,13 +116,13 @@ export async function loginWithEmail(email: string, pass: string) {
       if (methods.includes("google.com") && !methods.includes("password")) {
         return {
           user: null,
-          error: "This account was created with Google 1-Click. Please click 'Continue with Google' above to sign in.",
+          error: "An account with this email address already exists via Google 1-Click. Please click 'Continue with Google' above to sign in.",
         };
       }
       if (methods.length === 0) {
         return {
           user: null,
-          error: "No account exists for this email address yet. Click 'Register Here' below to create a free account.",
+          error: "No account found with this email address. Please click 'Register Here' below to create a free account.",
         };
       }
     } catch {
@@ -132,7 +132,7 @@ export async function loginWithEmail(email: string, pass: string) {
     if (code === "auth/invalid-credential" || code === "auth/user-not-found" || msg.includes("invalid-credential")) {
       return {
         user: null,
-        error: "No account exists for this email yet, or incorrect password. Click 'Register Here' below to create a free account.",
+        error: "No account found with this email address, or incorrect password. Please click 'Register Here' below to create a free account.",
       };
     }
 
@@ -140,7 +140,7 @@ export async function loginWithEmail(email: string, pass: string) {
   }
 }
 
-// 3. Email & Password Registration (With Smart Login Link Handler)
+// 3. Email & Password Registration (With Existing Email Detection)
 export async function registerWithEmail(email: string, pass: string) {
   const cleanEmail = email.trim().toLowerCase();
   try {
@@ -148,21 +148,14 @@ export async function registerWithEmail(email: string, pass: string) {
     return { user: result.user, error: null };
   } catch (error: any) {
     console.error("Firebase Registration Error:", error);
+    const code = error?.code || "";
+    const msg = String(error?.message || "");
 
-    // If account already exists with password, attempt automatic sign-in
-    if (error?.code === "auth/email-already-in-use") {
-      try {
-        const loginResult = await signInWithEmailAndPassword(auth, cleanEmail, pass);
-        return { user: loginResult.user, error: null };
-      } catch (loginError: any) {
-        // If login failed because account was created via Google
-        if (loginError?.code === "auth/invalid-credential" || loginError?.code === "auth/wrong-password") {
-          return {
-            user: null,
-            error: "An account with this email is registered via Google 1-Click. Please click 'Continue with Google' to sign in.",
-          };
-        }
-      }
+    if (code === "auth/email-already-in-use" || msg.includes("email-already-in-use")) {
+      return {
+        user: null,
+        error: "An account with this email address already exists. Please sign in instead.",
+      };
     }
 
     return { user: null, error: formatFirebaseError(error) };
