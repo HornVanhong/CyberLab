@@ -21,6 +21,7 @@ import {
   ExternalLink,
   Award,
   Cpu,
+  Code,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCyberLab } from "@/context/CyberLabContext";
@@ -40,6 +41,7 @@ const navItems: NavItem[] = [
   { name: "Kali & Target VM Setup", href: "/setup", icon: Cpu, badge: "Guide" },
   { name: "OSINT Web Links", href: "/osint-resources", icon: Globe, badge: "Portals" },
   { name: "OSINT & Kali Exam", href: "/exam", icon: Award, badge: "Cert" },
+  { name: "API Documentation", href: "/api-docs", icon: Code, badge: "Docs" },
   { name: "Commands & Generator", href: "/commands", icon: Terminal },
   { name: "Flag & Command Quiz", href: "/quiz", icon: HelpCircle, badge: "Interactive" },
   { name: "Progress", href: "/progress", icon: BarChart3 },
