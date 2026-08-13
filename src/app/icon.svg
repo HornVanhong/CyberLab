@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <!-- Dark Slate Background -->
+  <rect width="32" height="32" rx="7" fill="#020617"/>
+  <!-- Glowing Emerald Inner Border -->
+  <rect width="30" height="30" x="1" y="1" rx="6" stroke="#10b981" stroke-width="1.2" stroke-opacity="0.15"/>
+  
+  <!-- Cyber Security Shield -->
+  <path d="M16 5.2 L23.2 7C23.7 7.1 24 7.5 24 8V14.5C24 19 20.5 22.2 16.2 24.3C16.1 24.35 15.9 24.35 15.8 24.3C11.5 22.2 8 19 8 14.5V8C8 7.5 8.3 7.1 8.8 7L16 5.2Z" 
+        stroke="#10b981" 
+        stroke-width="2" 
+        stroke-linejoin="round"
+        stroke-linecap="round"/>
+        
+  <!-- Hacking Terminal Prompt (>_) Inside Shield -->
+  <path d="M13.5 11.5L16.5 14L13.5 16.5" stroke="#34d399" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <line x1="17.5" y1="16.5" x2="20" y2="16.5" stroke="#34d399" stroke-width="2" stroke-linecap="round"/>
+</svg>
