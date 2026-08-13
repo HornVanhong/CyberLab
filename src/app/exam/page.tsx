@@ -173,7 +173,23 @@ export default function PracticalExamPage() {
 
             {isAllSolved && (
               <button
-                onClick={() => setShowCertificate(true)}
+                onClick={async () => {
+                  setShowCertificate(true);
+                  try {
+                    await fetch("/api/exam/submit", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        candidateName: "CyberLab Operator",
+                        score: totalScore,
+                        tasksCompleted: solvedCount,
+                        totalTasks: PRACTICAL_EXAM_TASKS.length,
+                      }),
+                    });
+                  } catch {
+                    // Backend sync fallback
+                  }
+                }}
                 className="w-full mt-2 py-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-mono text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-lg shadow-amber-500/20 cursor-pointer"
               >
                 <Trophy className="w-4 h-4" />

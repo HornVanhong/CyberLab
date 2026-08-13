@@ -117,12 +117,27 @@ export default function ChallengeDetailPage({ params }: PageProps) {
 
   const potentialPoints = Math.max(10, challenge.points - totalHintPenalties);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!flagInput.trim()) return;
 
     const result = submitFlag(challenge.id, flagInput);
     setSubmissionFeedback(result);
+
+    // Submit to Full-Stack Backend API
+    try {
+      await fetch("/api/flags/submit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          labId: challenge.labId,
+          challengeId: challenge.id,
+          flag: flagInput,
+        }),
+      });
+    } catch {
+      // Backend API sync fallback
+    }
 
     if (result.isCorrect) {
       setFlagInput("");
