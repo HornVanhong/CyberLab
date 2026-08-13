@@ -1,0 +1,50 @@
+services:
+  # --------------------------------------------------
+  # Laravel API Web Service
+  # --------------------------------------------------
+  - type: web
+    name: cyberlab-laravel-api
+    env: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    region: singapore # or oregon / frankfurt
+    envVars:
+      - key: APP_NAME
+        value: CyberLabAPI
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: "false"
+      - key: APP_KEY
+        generateValue: true
+      - key: DB_CONNECTION
+        value: pgsql
+      - key: DB_HOST
+        fromDatabase:
+          name: cyberlab-postgres
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: cyberlab-postgres
+          property: port
+      - key: DB_DATABASE
+        fromDatabase:
+          name: cyberlab-postgres
+          property: database
+      - key: DB_USERNAME
+        fromDatabase:
+          name: cyberlab-postgres
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: cyberlab-postgres
+          property: password
+
+databases:
+  # --------------------------------------------------
+  # Render PostgreSQL Database
+  # --------------------------------------------------
+  - name: cyberlab-postgres
+    plan: free
+    databaseName: cyberlab_db
+    user: cyberlab_user
