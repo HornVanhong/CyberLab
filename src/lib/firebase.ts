@@ -35,6 +35,14 @@ function formatFirebaseError(error: any): string {
   const code = error?.code || "";
   const msg = String(error?.message || "");
 
+  if (code === "auth/unauthorized-domain" || msg.includes("unauthorized-domain")) {
+    return "Domain 'cyber-lab-roan.vercel.app' needs to be added under Firebase Console -> Authentication -> Settings -> Authorized Domains.";
+  }
+
+  if (code === "auth/popup-blocked" || msg.includes("popup-blocked")) {
+    return "Google sign-in popup was blocked by your browser. Please allow popups for this site and try again.";
+  }
+
   if (
     code === "auth/account-exists-with-different-credential" ||
     msg.includes("account-exists-with-different-credential")
@@ -73,7 +81,7 @@ function formatFirebaseError(error: any): string {
     return "Network error. Please check your internet connection.";
   }
 
-  return "Authentication error. Please check your details and try again.";
+  return "Authentication error. Please check your credentials or click 'Continue with Google'.";
 }
 
 // 1. Google 1-Click Sign-In & Registration
@@ -85,6 +93,13 @@ export async function signInWithGoogle() {
     console.error("Firebase Google Auth Error:", error);
     const code = error?.code || "";
     const msg = String(error?.message || "");
+
+    if (code === "auth/unauthorized-domain" || msg.includes("unauthorized-domain")) {
+      return {
+        user: null,
+        error: "Domain 'cyber-lab-roan.vercel.app' is not authorized in Firebase Console. Please add 'cyber-lab-roan.vercel.app' under Firebase Auth Settings -> Authorized Domains.",
+      };
+    }
 
     if (
       code === "auth/account-exists-with-different-credential" ||
