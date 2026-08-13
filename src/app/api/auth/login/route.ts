@@ -11,23 +11,23 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Email and password are required" }, { status: 400 });
     }
 
-    const user = getUserByEmail(email);
+    const user = await getUserByEmail(email);
     if (!user || user.passwordHash !== hashPassword(password)) {
       return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
     }
 
-    const token = signToken({ userId: user.id, email: user.email, role: user.role });
+    const token = signToken({ userId: user.id, email: user.email, role: user.role || "student" });
 
     const response = NextResponse.json({
       message: "Login successful",
       user: {
         id: user.id,
-        username: user.username,
+        username: user.username || user.email.split("@")[0],
         email: user.email,
-        role: user.role,
-        xp: user.xp,
-        level: user.level,
-        title: user.title,
+        role: user.role || "student",
+        xp: user.xp || 0,
+        level: user.level || 1,
+        title: user.title || "Novice Hacker",
       },
       token,
     });

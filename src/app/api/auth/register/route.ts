@@ -15,24 +15,24 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Password must be at least 6 characters long" }, { status: 400 });
     }
 
-    const existingUser = getUserByEmail(email);
+    const existingUser = await getUserByEmail(email);
     if (existingUser) {
       return NextResponse.json({ error: "User with this email already exists" }, { status: 409 });
     }
 
     const newUser = createUser(username, email, password);
-    const token = signToken({ userId: newUser.id, email: newUser.email, role: newUser.role });
+    const token = signToken({ userId: newUser.id, email: newUser.email, role: newUser.role || "student" });
 
     const response = NextResponse.json({
       message: "Registration successful",
       user: {
         id: newUser.id,
-        username: newUser.username,
+        username: newUser.username || username,
         email: newUser.email,
-        role: newUser.role,
-        xp: newUser.xp,
-        level: newUser.level,
-        title: newUser.title,
+        role: newUser.role || "student",
+        xp: newUser.xp || 0,
+        level: newUser.level || 1,
+        title: newUser.title || "Novice Hacker",
       },
       token,
     });

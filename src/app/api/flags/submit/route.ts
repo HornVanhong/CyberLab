@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "labId, challengeId, and flag are required" }, { status: 400 });
     }
 
-    const user = getAuthenticatedUser(req) || { id: "guest-user", xp: 0, level: 1, title: "Guest Pentester" };
+    const user = (await getAuthenticatedUser(req)) || { id: "guest-user", xp: 0, level: 1, title: "Guest Pentester" };
 
     const challenge = CHALLENGES.find((c) => c.id === challengeId && c.labId === labId);
     if (!challenge) {

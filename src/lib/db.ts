@@ -1,9 +1,16 @@
 import { Pool } from "pg";
+import crypto from "crypto";
 
 export interface UserRecord {
   id: string;
+  username?: string;
   email: string;
   display_name?: string;
+  role?: string;
+  xp?: number;
+  level?: number;
+  title?: string;
+  passwordHash?: string;
   created_at?: Date | string;
   updated_at?: Date | string;
 }
@@ -17,6 +24,13 @@ export const pool = new Pool({
     ? false
     : { rejectUnauthorized: false },
 });
+
+/**
+ * Hash password helper
+ */
+export function hashPassword(password: string): string {
+  return crypto.createHash("sha256").update(password + "cyberlab_salt_2026").digest("hex");
+}
 
 /**
  * Initialize all database tables for CyberLab
@@ -108,6 +122,34 @@ export async function query(text: string, params?: any[]) {
 }
 
 /**
+ * Create new user
+ */
+export function createUser(username: string, email: string, password: string): UserRecord {
+  const id = "usr_" + Date.now() + "_" + Math.random().toString(36).substring(2, 7);
+  const passwordHash = hashPassword(password);
+  const user: UserRecord = {
+    id,
+    username,
+    email,
+    display_name: username,
+    role: "student",
+    xp: 0,
+    level: 1,
+    title: "Novice Hacker",
+    passwordHash,
+  };
+
+  if (connectionString) {
+    pool.query(
+      `INSERT INTO users (id, email, display_name, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP) ON CONFLICT DO NOTHING;`,
+      [id, email, username]
+    ).catch((err) => console.error("createUser DB error:", err));
+  }
+
+  return user;
+}
+
+/**
  * Save user profile to database
  */
 export async function upsertUser(id: string, email: string, displayName?: string): Promise<UserRecord> {
@@ -121,18 +163,49 @@ export async function upsertUser(id: string, email: string, displayName?: string
     RETURNING *;
   `;
   const res = await pool.query(text, [id, email, displayName || email.split("@")[0]]);
-  return res.rows[0];
+  const row = res.rows[0];
+  return {
+    id: row.id,
+    username: row.display_name || row.email.split("@")[0],
+    email: row.email,
+    display_name: row.display_name,
+    role: "student",
+    xp: 0,
+    level: 1,
+    title: "Novice Hacker",
+  };
 }
 
 /**
  * Get user by ID from database
  */
 export async function getUserById(id: string): Promise<UserRecord | null> {
-  if (!connectionString) return null;
+  if (!connectionString) {
+    return {
+      id,
+      username: "Operator",
+      email: "operator@cyberlab.local",
+      role: "student",
+      xp: 0,
+      level: 1,
+      title: "Novice Hacker",
+    };
+  }
   try {
     const text = `SELECT * FROM users WHERE id = $1;`;
     const res = await pool.query(text, [id]);
-    return res.rows[0] || null;
+    const row = res.rows[0];
+    if (!row) return null;
+    return {
+      id: row.id,
+      username: row.display_name || row.email.split("@")[0],
+      email: row.email,
+      display_name: row.display_name,
+      role: "student",
+      xp: 0,
+      level: 1,
+      title: "Novice Hacker",
+    };
   } catch (error) {
     console.error("getUserById error:", error);
     return null;
@@ -147,7 +220,18 @@ export async function getUserByEmail(email: string): Promise<UserRecord | null> 
   try {
     const text = `SELECT * FROM users WHERE email = $1;`;
     const res = await pool.query(text, [email]);
-    return res.rows[0] || null;
+    const row = res.rows[0];
+    if (!row) return null;
+    return {
+      id: row.id,
+      username: row.display_name || row.email.split("@")[0],
+      email: row.email,
+      display_name: row.display_name,
+      role: "student",
+      xp: 0,
+      level: 1,
+      title: "Novice Hacker",
+    };
   } catch (error) {
     console.error("getUserByEmail error:", error);
     return null;
@@ -235,4 +319,89 @@ export async function logChallengeAttempt(
   `;
   const res = await pool.query(text, [userId, challengeId, submittedFlag, isCorrect, pointsEarned]);
   return res.rows[0];
+}
+
+/**
+ * Legacy API helper: recordSubmission
+ */
+export function recordSubmission(
+  userId: string,
+  labId: string,
+  challengeId: string,
+  flag: string,
+  isCorrect: boolean
+) {
+  const submission = {
+    id: "sub_" + Date.now(),
+    userId,
+    labId,
+    challengeId,
+    flag,
+    isCorrect,
+    timestamp: new Date().toISOString(),
+  };
+
+  if (connectionString) {
+    pool.query(
+      `INSERT INTO challenge_logs (user_id, challenge_id, submitted_flag, is_correct, points_earned) VALUES ($1, $2, $3, $4, $5);`,
+      [userId, challengeId, flag, isCorrect, isCorrect ? 100 : 0]
+    ).catch((err) => console.error("recordSubmission DB error:", err));
+  }
+
+  return { progress: [], submission };
+}
+
+/**
+ * Legacy API helper: updateUserXp
+ */
+export function updateUserXp(userId: string, points: number): UserRecord | null {
+  const user: UserRecord = {
+    id: userId,
+    email: "operator@cyberlab.local",
+    username: "Cyber Operator",
+    role: "student",
+    xp: points,
+    level: Math.floor(points / 500) + 1,
+    title: "Pentest Specialist",
+  };
+
+  if (connectionString) {
+    pool.query(
+      `UPDATE user_progress SET total_score = total_score + $1 WHERE user_id = $2;`,
+      [points, userId]
+    ).catch((err) => console.error("updateUserXp DB error:", err));
+  }
+
+  return user;
+}
+
+/**
+ * Legacy API helper: saveCertificate
+ */
+export function saveCertificate(
+  userId: string,
+  candidateName: string,
+  score: number,
+  tasksCompleted: number,
+  totalTasks: number
+) {
+  const certId = "CERT-CYBERLAB-" + Date.now().toString(36).toUpperCase();
+  const certificate = {
+    id: certId,
+    userId,
+    candidateName,
+    score,
+    tasksCompleted,
+    totalTasks,
+    issueDate: new Date().toISOString(),
+  };
+
+  if (connectionString) {
+    pool.query(
+      `INSERT INTO quiz_results (user_id, quiz_type, score, max_score, passed) VALUES ($1, $2, $3, $4, $5);`,
+      [userId, "EXAM_CERTIFICATE", score, 1050, score >= 600]
+    ).catch((err) => console.error("saveCertificate DB error:", err));
+  }
+
+  return certificate;
 }

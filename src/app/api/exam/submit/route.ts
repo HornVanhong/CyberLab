@@ -7,7 +7,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { candidateName, score, tasksCompleted, totalTasks } = body;
 
-    const user = getAuthenticatedUser(req) || { id: "guest-user" };
+    const user = (await getAuthenticatedUser(req)) || { id: "guest-user" };
 
     const cert = saveCertificate(
       user.id,

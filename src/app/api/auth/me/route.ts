@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAuthenticatedUser } from "@/lib/auth";
 
 export async function GET(req: NextRequest) {
-  const user = getAuthenticatedUser(req);
+  const user = await getAuthenticatedUser(req);
 
   if (!user) {
     return NextResponse.json({
@@ -38,13 +38,13 @@ export async function GET(req: NextRequest) {
     authenticated: true,
     user: {
       id: user.id,
-      username: user.username,
+      username: user.username || user.display_name || user.email.split("@")[0],
       email: user.email,
-      role: user.role,
-      xp: user.xp,
-      level: user.level,
-      title: user.title,
+      role: user.role || "student",
+      xp: user.xp || 0,
+      level: user.level || 1,
+      title: user.title || "Novice Hacker",
     },
-    message: `Authenticated successfully as ${user.username}`,
+    message: `Authenticated successfully as ${user.username || user.email}`,
   });
 }
