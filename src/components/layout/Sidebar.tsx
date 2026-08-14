@@ -21,7 +21,6 @@ import {
   ExternalLink,
   Award,
   Cpu,
-  Database,
   User,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -45,7 +44,6 @@ const navItems: NavItem[] = [
   { name: "OSINT & Kali Exam", href: "/exam", icon: Award, badge: "Cert" },
   { name: "Commands & Generator", href: "/commands", icon: Terminal },
   { name: "Flag & Command Quiz", href: "/quiz", icon: HelpCircle, badge: "Interactive" },
-  { name: "Database Explorer", href: "/admin", icon: Database, badge: "PostgreSQL" },
   { name: "Progress", href: "/progress", icon: BarChart3 },
   { name: "Settings", href: "/settings", icon: Settings },
 ];

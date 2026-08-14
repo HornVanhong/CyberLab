@@ -15,7 +15,6 @@ import {
   CheckCircle2,
   Calendar,
   Key,
-  Database,
   Edit2,
   Check,
   Download,
@@ -96,8 +95,8 @@ export default function ProfilePage() {
                   <span>{user?.email || "Operator Account"}</span>
                 </span>
                 <span className="flex items-center gap-1.5 text-emerald-400 font-semibold">
-                  <Database className="w-3.5 h-3.5" />
-                  <span>PostgreSQL Synced</span>
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <span>Cloud Synced</span>
                 </span>
               </div>
             </div>
@@ -192,7 +191,7 @@ export default function ProfilePage() {
                 </span>
               </div>
               <span className="px-2.5 py-1 rounded bg-slate-900 text-slate-400 border border-slate-800 text-[11px]">
-                Firebase ID
+                Profile ID
               </span>
             </div>
 
