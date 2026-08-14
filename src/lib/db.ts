@@ -1,39 +1,51 @@
 import { Pool } from "pg";
 import crypto from "crypto";
 
-export interface UserRecord {
-  id: string;
-  username?: string;
-  email: string;
-  display_name?: string;
-  role?: string;
-  xp?: number;
-  level?: number;
-  title?: string;
-  passwordHash?: string;
-  created_at?: Date | string;
-  updated_at?: Date | string;
-}
-
-// Render PostgreSQL requires SSL connection in production/external connection
+// PostgreSQL Connection Pool Setup for Render Database
 const connectionString = process.env.DATABASE_URL;
 
 export const pool = new Pool({
   connectionString,
-  ssl: connectionString?.includes("localhost") || connectionString?.includes("127.0.0.1")
-    ? false
-    : { rejectUnauthorized: false },
+  ssl:
+    process.env.NODE_ENV === "production" || (connectionString && connectionString.includes("render.com"))
+      ? { rejectUnauthorized: false }
+      : false,
+  max: 20,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 10000,
 });
 
+export interface UserRecord {
+  id: string;
+  username: string;
+  email: string;
+  display_name?: string;
+  role: string;
+  xp: number;
+  level: number;
+  title: string;
+  passwordHash?: string;
+}
+
 /**
- * Hash password helper
+ * Security Helper: Sanitize text inputs to trim whitespace & strip null byte characters
+ */
+export function sanitizeInput(input: any): string {
+  if (typeof input !== "string") return String(input || "");
+  return input.trim().replace(/\0/g, "");
+}
+
+/**
+ * Hash password string using SHA-256 with static salt
  */
 export function hashPassword(password: string): string {
-  return crypto.createHash("sha256").update(password + "cyberlab_salt_2026").digest("hex");
+  const cleanPass = sanitizeInput(password);
+  return crypto.createHash("sha256").update(cleanPass + "cyberlab_salt_2026").digest("hex");
 }
 
 /**
  * Initialize all database tables for CyberLab
+ * Strictly uses static SQL statement definitions with ZERO dynamic input interpolation
  */
 export async function initDatabase() {
   if (!connectionString) {
@@ -112,7 +124,7 @@ export async function initDatabase() {
 }
 
 /**
- * Execute custom SQL query with params
+ * Execute custom SQL query safely with parameterized values ($1, $2, etc.)
  */
 export async function query(text: string, params?: any[]) {
   const start = Date.now();
@@ -122,16 +134,19 @@ export async function query(text: string, params?: any[]) {
 }
 
 /**
- * Create new user
+ * Create new user safely using parameterized query bindings
  */
 export function createUser(username: string, email: string, password: string): UserRecord {
+  const cleanUsername = sanitizeInput(username);
+  const cleanEmail = sanitizeInput(email).toLowerCase();
   const id = "usr_" + Date.now() + "_" + Math.random().toString(36).substring(2, 7);
   const passwordHash = hashPassword(password);
+
   const user: UserRecord = {
     id,
-    username,
-    email,
-    display_name: username,
+    username: cleanUsername,
+    email: cleanEmail,
+    display_name: cleanUsername,
     role: "student",
     xp: 0,
     level: 1,
@@ -140,9 +155,10 @@ export function createUser(username: string, email: string, password: string): U
   };
 
   if (connectionString) {
+    // 100% Parameterized query: $1, $2, $3 prevents SQL injection
     pool.query(
       `INSERT INTO users (id, email, display_name, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP) ON CONFLICT DO NOTHING;`,
-      [id, email, username]
+      [id, cleanEmail, cleanUsername]
     ).catch((err) => console.error("createUser DB error:", err));
   }
 
@@ -150,9 +166,13 @@ export function createUser(username: string, email: string, password: string): U
 }
 
 /**
- * Save user profile to database
+ * Save user profile safely to database
  */
 export async function upsertUser(id: string, email: string, displayName?: string): Promise<UserRecord> {
+  const cleanId = sanitizeInput(id);
+  const cleanEmail = sanitizeInput(email).toLowerCase();
+  const cleanName = displayName ? sanitizeInput(displayName) : cleanEmail.split("@")[0];
+
   const text = `
     INSERT INTO users (id, email, display_name, updated_at)
     VALUES ($1, $2, $3, CURRENT_TIMESTAMP)
@@ -162,7 +182,8 @@ export async function upsertUser(id: string, email: string, displayName?: string
         updated_at = CURRENT_TIMESTAMP
     RETURNING *;
   `;
-  const res = await pool.query(text, [id, email, displayName || email.split("@")[0]]);
+  // 100% Parameterized query: $1, $2, $3 prevents SQL injection
+  const res = await pool.query(text, [cleanId, cleanEmail, cleanName]);
   const row = res.rows[0];
   return {
     id: row.id,
@@ -177,12 +198,13 @@ export async function upsertUser(id: string, email: string, displayName?: string
 }
 
 /**
- * Get user by ID from database
+ * Get user by ID safely from database
  */
 export async function getUserById(id: string): Promise<UserRecord | null> {
+  const cleanId = sanitizeInput(id);
   if (!connectionString) {
     return {
-      id,
+      id: cleanId,
       username: "Operator",
       email: "operator@cyberlab.local",
       role: "student",
@@ -192,8 +214,9 @@ export async function getUserById(id: string): Promise<UserRecord | null> {
     };
   }
   try {
+    // 100% Parameterized query: $1 prevents SQL injection
     const text = `SELECT * FROM users WHERE id = $1;`;
-    const res = await pool.query(text, [id]);
+    const res = await pool.query(text, [cleanId]);
     const row = res.rows[0];
     if (!row) return null;
     return {
@@ -213,13 +236,15 @@ export async function getUserById(id: string): Promise<UserRecord | null> {
 }
 
 /**
- * Get user by Email from database
+ * Get user by Email safely from database
  */
 export async function getUserByEmail(email: string): Promise<UserRecord | null> {
+  const cleanEmail = sanitizeInput(email).toLowerCase();
   if (!connectionString) return null;
   try {
+    // 100% Parameterized query: $1 prevents SQL injection
     const text = `SELECT * FROM users WHERE email = $1;`;
-    const res = await pool.query(text, [email]);
+    const res = await pool.query(text, [cleanEmail]);
     const row = res.rows[0];
     if (!row) return null;
     return {
@@ -239,17 +264,19 @@ export async function getUserByEmail(email: string): Promise<UserRecord | null> 
 }
 
 /**
- * Get user progress from database
+ * Get user progress safely from database
  */
 export async function getUserProgress(userId: string) {
+  const cleanUserId = sanitizeInput(userId);
   if (!connectionString) return null;
+  // 100% Parameterized query: $1 prevents SQL injection
   const text = `SELECT * FROM user_progress WHERE user_id = $1;`;
-  const res = await pool.query(text, [userId]);
+  const res = await pool.query(text, [cleanUserId]);
   return res.rows[0] || null;
 }
 
 /**
- * Save / sync user progress to database
+ * Save / sync user progress safely to database
  */
 export async function saveUserProgress(
   userId: string,
@@ -265,7 +292,9 @@ export async function saveUserProgress(
     totalScore?: number;
   }
 ) {
+  const cleanUserId = sanitizeInput(userId);
   if (!connectionString) return null;
+
   const text = `
     INSERT INTO user_progress (
       user_id, current_lab_id, completed_challenges, revealed_hints, scores, attempts, target_ips, settings, last_challenge, total_score, updated_at
@@ -285,24 +314,25 @@ export async function saveUserProgress(
     RETURNING *;
   `;
 
+  // 100% Parameterized query: $1 through $10 prevents SQL injection
   const res = await pool.query(text, [
-    userId,
-    progressData.currentLabId || "metasploitable-2",
+    cleanUserId,
+    sanitizeInput(progressData.currentLabId || "metasploitable-2"),
     JSON.stringify(progressData.completedChallenges || []),
     JSON.stringify(progressData.revealedHints || {}),
     JSON.stringify(progressData.scores || {}),
     JSON.stringify(progressData.attempts || {}),
     JSON.stringify(progressData.targetIps || {}),
     JSON.stringify(progressData.settings || {}),
-    progressData.lastChallenge || null,
-    progressData.totalScore || 0,
+    progressData.lastChallenge ? sanitizeInput(progressData.lastChallenge) : null,
+    Number(progressData.totalScore || 0),
   ]);
 
   return res.rows[0];
 }
 
 /**
- * Log a challenge flag attempt to database
+ * Log a challenge flag attempt safely to database
  */
 export async function logChallengeAttempt(
   userId: string,
@@ -312,12 +342,17 @@ export async function logChallengeAttempt(
   pointsEarned: number
 ) {
   if (!connectionString) return null;
+  const cleanUserId = sanitizeInput(userId);
+  const cleanChallengeId = sanitizeInput(challengeId);
+  const cleanFlag = sanitizeInput(submittedFlag);
+
   const text = `
     INSERT INTO challenge_logs (user_id, challenge_id, submitted_flag, is_correct, points_earned)
     VALUES ($1, $2, $3, $4, $5)
     RETURNING *;
   `;
-  const res = await pool.query(text, [userId, challengeId, submittedFlag, isCorrect, pointsEarned]);
+  // 100% Parameterized query: $1-$5 prevents SQL injection
+  const res = await pool.query(text, [cleanUserId, cleanChallengeId, cleanFlag, Boolean(isCorrect), Number(pointsEarned)]);
   return res.rows[0];
 }
 
@@ -331,20 +366,25 @@ export function recordSubmission(
   flag: string,
   isCorrect: boolean
 ) {
+  const cleanUserId = sanitizeInput(userId);
+  const cleanChallengeId = sanitizeInput(challengeId);
+  const cleanFlag = sanitizeInput(flag);
+
   const submission = {
     id: "sub_" + Date.now(),
-    userId,
-    labId,
-    challengeId,
-    flag,
+    userId: cleanUserId,
+    labId: sanitizeInput(labId),
+    challengeId: cleanChallengeId,
+    flag: cleanFlag,
     isCorrect,
     timestamp: new Date().toISOString(),
   };
 
   if (connectionString) {
+    // 100% Parameterized query: $1-$5 prevents SQL injection
     pool.query(
       `INSERT INTO challenge_logs (user_id, challenge_id, submitted_flag, is_correct, points_earned) VALUES ($1, $2, $3, $4, $5);`,
-      [userId, challengeId, flag, isCorrect, isCorrect ? 100 : 0]
+      [cleanUserId, cleanChallengeId, cleanFlag, Boolean(isCorrect), isCorrect ? 100 : 0]
     ).catch((err) => console.error("recordSubmission DB error:", err));
   }
 
@@ -355,20 +395,22 @@ export function recordSubmission(
  * Legacy API helper: updateUserXp
  */
 export function updateUserXp(userId: string, points: number): UserRecord | null {
+  const cleanUserId = sanitizeInput(userId);
   const user: UserRecord = {
-    id: userId,
+    id: cleanUserId,
     email: "operator@cyberlab.local",
     username: "Cyber Operator",
     role: "student",
-    xp: points,
-    level: Math.floor(points / 500) + 1,
+    xp: Number(points),
+    level: Math.floor(Number(points) / 500) + 1,
     title: "Pentest Specialist",
   };
 
   if (connectionString) {
+    // 100% Parameterized query: $1, $2 prevents SQL injection
     pool.query(
       `UPDATE user_progress SET total_score = total_score + $1 WHERE user_id = $2;`,
-      [points, userId]
+      [Number(points), cleanUserId]
     ).catch((err) => console.error("updateUserXp DB error:", err));
   }
 
@@ -385,21 +427,25 @@ export function saveCertificate(
   tasksCompleted: number,
   totalTasks: number
 ) {
+  const cleanUserId = sanitizeInput(userId);
+  const cleanName = sanitizeInput(candidateName);
   const certId = "CERT-CYBERLAB-" + Date.now().toString(36).toUpperCase();
+
   const certificate = {
     id: certId,
-    userId,
-    candidateName,
-    score,
-    tasksCompleted,
-    totalTasks,
+    userId: cleanUserId,
+    candidateName: cleanName,
+    score: Number(score),
+    tasksCompleted: Number(tasksCompleted),
+    totalTasks: Number(totalTasks),
     issueDate: new Date().toISOString(),
   };
 
   if (connectionString) {
+    // 100% Parameterized query: $1-$5 prevents SQL injection
     pool.query(
       `INSERT INTO quiz_results (user_id, quiz_type, score, max_score, passed) VALUES ($1, $2, $3, $4, $5);`,
-      [userId, "EXAM_CERTIFICATE", score, 1050, score >= 600]
+      [cleanUserId, "EXAM_CERTIFICATE", Number(score), 1050, Number(score) >= 600]
     ).catch((err) => console.error("saveCertificate DB error:", err));
   }
 
